@@ -135,6 +135,7 @@ pnpm run export-abis
 
 ## 🔗 Related Docs
 
+- [**Smart Contract Architecture (Full)**](./ARCHITECTURE.md) — EF-quality design, security analysis, emergency runbook, all diagrams
 - [Smart Contract Skill](../../BikkoFarms-Website/.ai/skills/smart-contract-development.md)
 - [Blockchain Integration Skill](../../BikkoFarms-Website/.ai/skills/blockchain-integration.md)
 - [Oracle Strategy ADR](../../BikkoFarms-Website/.ai/decisions/0002-oracle-strategy.md)
