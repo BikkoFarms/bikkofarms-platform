@@ -239,7 +239,7 @@ bikkochain-backend/
 │   │   └── schema.prisma
 │   └── jobs/
 │       └── disbursePayout.ts
-├── contracts/              # Solidity (separate Hardhat project)
+├── contracts/              # Solidity (separate Foundry project)
 ├── docker-compose.yml
 └── package.json
 ```
@@ -339,22 +339,19 @@ erDiagram
 
 ### 3.4 Smart Contract Architecture (Solidity on Lisk)
 
-**Toolchain:** Hardhat + TypeScript, OpenZeppelin v5, ethers v6, Chainlink AggregatorV3Interface
+**Toolchain:** Foundry (forge), OpenZeppelin v5, Solidity ^0.8.20
 
-**Lisk network config for `hardhat.config.ts`:**
-```typescript
-networks: {
-  liskSepolia: {
-    url: "https://rpc.sepolia-api.lisk.com",
-    chainId: 4242,
-    accounts: [process.env.PRIVATE_KEY!]
-  },
-  liskMainnet: {
-    url: "https://rpc.api.lisk.com",
-    chainId: 1135,
-    accounts: [process.env.PRIVATE_KEY!]
-  }
-}
+**Lisk network config for `foundry.toml`:**
+```toml
+# foundry.toml
+[profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+
+[rpc_endpoints]
+liskSepolia = "https://rpc.sepolia-api.lisk.com"
+liskMainnet = "https://rpc.api.lisk.com"
 ```
 
 **Important:** Chainlink does NOT have cocoa/coffee price feeds natively. You have two realistic options:
@@ -759,7 +756,7 @@ volumes:
 | Redis | 7 | [redis.io/docs](https://redis.io/docs) | Session + queues |
 | Bull | 4.x | [docs.bullmq.io](https://docs.bullmq.io) | Job queues |
 | ethers.js | 6.x | [docs.ethers.org](https://docs.ethers.org) | Lisk contract interaction |
-| Hardhat | 2.x | [hardhat.org/docs](https://hardhat.org/docs) | Smart contract toolchain |
+| Foundry | latest | [book.getfoundry.sh](https://book.getfoundry.sh) | Smart contract toolchain (forge) |
 | OpenZeppelin | 5.x | [docs.openzeppelin.com](https://docs.openzeppelin.com) | Contract libraries |
 | Solidity | 0.8.20+ | [soliditylang.org](https://soliditylang.org) | Smart contracts |
 | Lisk Testnet RPC | — | `https://rpc.sepolia-api.lisk.com` (chainId: 4242) | Testnet |
@@ -793,11 +790,11 @@ Given the 2-week immediate deadline, here is what must be built first, in order:
 - [ ] Basic env config with `zod` validation
 
 **Day 3–4: Smart contract skeleton**
-- [ ] Hardhat project configured for Lisk Sepolia
+- [ ] Foundry project configured for Lisk Sepolia
 - [ ] `HarvestToken.sol` (ERC-1155) deployed to Lisk Sepolia testnet
 - [ ] `BikkoLendingPool.sol` skeleton deployed
 - [ ] `BikkoOracle.sol` (admin price oracle) deployed
-- [ ] Write unit tests with Hardhat local node
+- [ ] Write unit tests in Solidity with Forge (forge test)
 
 **Day 5–7: WhatsApp bot (most visible deliverable)**
 - [ ] Meta developer account + app + WhatsApp product configured
@@ -901,7 +898,7 @@ LOG_LEVEL=info
 
 | Layer | Tool | What to test |
 |---|---|---|
-| Smart contracts | Hardhat + Mocha/Chai | Unit tests for all contract functions; fuzz with Foundry |
+| Smart contracts | Foundry (forge test) | Unit and fuzz tests in Solidity for all contract functions |
 | Static analysis | Slither | Run on every PR; zero high-severity issues before mainnet |
 | Backend unit | Jest + ts-jest | Services in isolation with mocked DB/chain |
 | Backend integration | Supertest | API endpoints with real Docker DB/Redis |

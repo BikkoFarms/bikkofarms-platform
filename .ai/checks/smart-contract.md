@@ -22,14 +22,14 @@ Required checks before merging smart contract changes or deploying to any networ
 - [ ] 100% branch coverage on all financial functions (`applyLoan`, `approveLoan`, `repayLoan`, `liquidate`)
 - [ ] Unit tests cover: happy path, all revert cases, reentrancy attack simulation
 - [ ] Fuzz tests written for numeric inputs (loan amounts, harvest kg, prices)
-- [ ] Tests run on Hardhat local node only — no Lisk Sepolia in unit test suite
+- [ ] Tests run on Forge local test engine only — no Lisk Sepolia in unit test suite
 
 ---
 
 ## 🔍 Static Analysis
 
-- [ ] `slither contracts/ --exclude-low --exclude-informational` passes with ZERO high/medium findings
-- [ ] Mythril scan run: `myth analyze contracts/BikkoLendingPool.sol --max-depth 10`
+- [ ] `slither src/ --exclude-low --exclude-informational` passes with ZERO high/medium findings
+- [ ] Mythril scan run: `myth analyze src/BikkoLendingPool.sol --max-depth 10`
 - [ ] OpenZeppelin contract versions pinned (not floating) in `package.json`
 
 ---
@@ -48,8 +48,8 @@ Required checks before merging smart contract changes or deploying to any networ
 - [ ] Contract addresses saved to `bikkofarms-contracts/.env.deployed.sepolia` (or `.mainnet`)
 - [ ] `TransparentUpgradeableProxy` used for `BikkoLendingPool.sol` — NOT for `HarvestToken.sol` or `BikkoOracle.sol`
 - [ ] 7-day timelock configured on proxy admin for mainnet
-- [ ] ABI files exported from Hardhat and copied to `bikkofarms-backend/src/config/abis/`
-- [ ] Deployment script (`scripts/deploy.ts`) is idempotent and logs all addresses
+- [ ] ABI files exported from Foundry out/ folder and copied to `bikkofarms-backend/src/config/abis/`
+- [ ] Deployment script (`script/Deploy.s.sol`) is idempotent and logs all addresses
 
 ---
 

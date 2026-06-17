@@ -132,7 +132,7 @@ export class BlockchainService {
 * **Transaction nonce:** For concurrent transactions, lock nonce updates in Redis to avoid duplicate nonce errors.
 * **Gas limit:** Set explicit `gasLimit` on all transactions. Start with `300_000n` for `approveLoan`, `200_000n` for `mint`. Tune down after profiling.
 * **Revert parsing:** Use `ethers.isCallException(error)` to detect contract reverts and extract the revert reason for logging.
-* **ABI files:** Export ABIs from Hardhat artifacts (`artifacts/contracts/ContractName.sol/ContractName.json`) and copy to `bikkofarms-backend/src/config/abis/` after each contract change.
+* **ABI files:** Export ABIs from Foundry compilation output (`out/ContractName.sol/ContractName.json`) and copy to `bikkofarms-backend/src/config/abis/` after each contract change.
 
 ---
 

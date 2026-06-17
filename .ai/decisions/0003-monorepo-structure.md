@@ -8,7 +8,7 @@
 
 ## Context
 
-BikkoChain has three distinct codebases: a Node.js/Express backend, Hardhat smart contracts, and a React dashboard. Additionally, the public marketing website (bikkofarms-platform) is a separate Next.js app. We need to decide how to organize these repositories.
+BikkoChain has five distinct packages: a Node.js/Express backend, Foundry smart contracts, a React dashboard, a USSD gateway client, and a WhatsApp bot client. We need to decide how to organize these repositories.
 
 ---
 
@@ -17,7 +17,7 @@ BikkoChain has three distinct codebases: a Node.js/Express backend, Hardhat smar
 ### Option A: Single Monorepo (all in one repo)
 - **Pro:** Single PR, unified CI/CD, easy cross-package imports
 - **Con:** Dashboard and backend have completely different deploy targets; Next.js website has different concerns entirely
-- **Con:** Mixing blockchain toolchain (Hardhat, Foundry) with web toolchain causes dependency conflicts
+- **Con:** Mixing blockchain toolchain (Foundry) with web toolchain causes dependency conflicts
 - **Verdict:** Too much coupling for the team's needs
 
 ### Option B: Fully Separate Repositories (4 repos)
@@ -26,7 +26,7 @@ BikkoChain has three distinct codebases: a Node.js/Express backend, Hardhat smar
 - **Verdict:** Too much friction for a lean startup team
 
 ### Option C: Two Repositories (platform monorepo + public website) ← SELECTED
-- **Platform monorepo** (`bikkofarms-platform/`): backend + contracts + dashboard using pnpm workspaces
+- **Platform monorepo** (`bikkofarms-platform/`): backend + contracts + dashboard + ussd + whatsappbot using pnpm workspaces
 - **Public website** (`bikkofarms-platform/`): standalone Next.js app, separate deploy pipeline
 - **Pro:** Connected codebases share types and can be changed in one PR; website is independent
 - **Pro:** pnpm workspaces handles shared TypeScript types (`packages/shared-types/`)
@@ -38,8 +38,10 @@ BikkoChain has three distinct codebases: a Node.js/Express backend, Hardhat smar
 
 **Repository 1:** `bikkofarms-platform/` — pnpm monorepo with:
 - `bikkofarms-backend/` — Express API
-- `bikkofarms-contracts/` — Hardhat/Solidity
+- `bikkofarms-contracts/` — Foundry/Solidity
 - `bikkofarms-dashboard/` — React/Vite
+- `bikkofarms-ussd/` — Africa's Talking USSD Gateway
+- `bikkofarms-whatsappbot/` — Meta Cloud API WhatsApp Bot
 - `packages/shared-types/` — Shared TypeScript interfaces (Loan, Farmer, etc.)
 
 **Repository 2:** `bikkofarms-platform/` — standalone Next.js public site
@@ -75,5 +77,5 @@ export type LoanStatus = 'PENDING' | 'APPROVED' | 'DISBURSING' | 'DISBURSED' | '
 - Independent CI pipelines per package but triggered from single repo
 
 ### Risks & Mitigations
-- **Hardhat vs Vite dependency conflicts:** Use `pnpm`'s strict hoisting to prevent conflicts
+- **Foundry vs Vite dependency conflicts:** Use `pnpm`'s strict hoisting to prevent conflicts
 - **Circular dependencies:** `shared-types` must only contain pure types — no runtime dependencies

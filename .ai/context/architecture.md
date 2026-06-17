@@ -94,9 +94,8 @@ graph TB
 | Tool | Version | Purpose |
 |---|---|---|
 | Solidity | ^0.8.20 | Smart contracts |
-| Hardhat | 2.x | Development toolchain |
+| Foundry | latest | Development toolchain (forge) |
 | OpenZeppelin | 5.x | Contract base libraries |
-| ethers | 6.x | Hardhat scripts & tests |
 | Slither | latest | Static analysis (CI gate) |
 | Mythril | latest | Security analysis |
 
@@ -127,19 +126,15 @@ graph TB
 ### Lisk Blockchain
 
 ```typescript
-// hardhat.config.ts
-networks: {
-  liskSepolia: {
-    url: "https://rpc.sepolia-api.lisk.com",
-    chainId: 4242,
-    accounts: [process.env.PRIVATE_KEY!]
-  },
-  liskMainnet: {
-    url: "https://rpc.api.lisk.com",
-    chainId: 1135,
-    accounts: [process.env.PRIVATE_KEY!]
-  }
-}
+// foundry.toml
+[profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+
+[rpc_endpoints]
+liskSepolia = "https://rpc.sepolia-api.lisk.com"
+liskMainnet = "https://rpc.api.lisk.com"
 ```
 
 - **Testnet Faucet:** https://sepolia-faucet.lisk.com
@@ -250,7 +245,7 @@ Dead-letter queue alerts admin via Slack webhook or email.
 - GitHub Actions (`.github/workflows/`)
 - Frontend merges to `main` → auto-deploy to Vercel
 - Backend merges to `main` → Docker build → Render/EC2
-- Contracts: Hardhat deploy script → Lisk Sepolia (then mainnet on explicit trigger)
+- Contracts: Foundry deploy script → Lisk Sepolia (then mainnet on explicit trigger)
 
 ---
 
@@ -273,21 +268,29 @@ bikkofarms-platform/
 │   ├── docker-compose.yml
 │   └── package.json
 │
-├── bikkofarms-contracts/    # Hardhat / Solidity / OpenZeppelin
-│   ├── contracts/
+├── bikkofarms-contracts/    # Foundry / Solidity / OpenZeppelin
+│   ├── src/
 │   │   ├── HarvestToken.sol       # ERC-1155
 │   │   ├── BikkoLendingPool.sol   # Core lending logic
 │   │   └── BikkoOracle.sol        # Admin price oracle (MVP)
-│   ├── test/
-│   ├── scripts/             # deploy.ts
-│   └── hardhat.config.ts
+│   ├── test/                # *.t.sol tests in Solidity
+│   ├── script/              # Deploy.s.sol deployment script
+│   └── foundry.toml
 │
-└── bikkofarms-dashboard/    # React 18 + Vite + TanStack Query
-    ├── src/
-    │   ├── pages/           # login, dashboard, farmers, loans, payouts, analytics
-    │   ├── components/
-    │   └── lib/             # api client, query hooks
-    └── package.json
+├── bikkofarms-dashboard/    # React 18 + Vite + TanStack Query
+│   ├── src/
+│   │   ├── pages/           # login, dashboard, farmers, loans, payouts, analytics
+│   │   ├── components/
+│   │   └── lib/             # api client, query hooks
+│   └── package.json
+│
+├── bikkofarms-ussd/         # Stateless USSD client gateway
+│   ├── src/                 # AT integration and Redis state machine
+│   └── package.json
+│
+├── bikkofarms-whatsappbot/  # WhatsApp Bot client gateway
+│   ├── src/                 # Meta Cloud API integration and Redis dialog trees
+│   └── package.json
 
 bikkofarms-platform/          # Next.js public site
 ├── src/app/                 # App Router pages

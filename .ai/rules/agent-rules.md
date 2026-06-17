@@ -19,7 +19,7 @@ This document defines the strict rule set that governs all AI coding tools and a
    Ensure new code conforms to the structures, naming conventions, and file divisions already present in the codebase. Read existing source files before creating new ones.
 
 5. **Monorepo awareness:**
-   The platform lives in three packages: `bikkofarms-backend/`, `bikkofarms-contracts/`, `bikkofarms-dashboard/`. The public website lives in `bikkofarms-platform/`. Never mix concerns across these boundaries. Run `pnpm` commands with `--filter` when working on specific packages.
+   The platform lives in five packages: `bikkofarms-backend/`, `bikkofarms-contracts/`, `bikkofarms-dashboard/`, `bikkofarms-ussd/`, and `bikkofarms-whatsappbot/`. The public website lives in `bikkofarms-platform/`. Never mix concerns across these boundaries. Run `pnpm` commands with `--filter` when working on specific packages.
 
 ---
 
@@ -57,9 +57,9 @@ This document defines the strict rule set that governs all AI coding tools and a
 
 12. **Smart contract stack is fixed:**
     - Solidity `^0.8.20` — no floating pragmas
-    - Hardhat 2.x + TypeScript
+    - Foundry (forge) — compilation, testing, and deployment scripting
     - OpenZeppelin Contracts v5 for all base contracts
-    - ethers v6 for Hardhat scripts and tests
+    - Solidity scripts (`script/Deploy.s.sol`) and tests (`test/*.t.sol`) in Solidity
     - MVP Oracle: `BikkoOracle.sol` admin-controlled price oracle — NOT Chainlink (Chainlink has no cocoa/coffee feeds on Lisk)
     - Upgrade pattern: `TransparentUpgradeableProxy` with 7-day timelock on `BikkoLendingPool.sol`
 

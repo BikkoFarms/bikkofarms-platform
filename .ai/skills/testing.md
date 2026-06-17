@@ -14,7 +14,7 @@ To enforce comprehensive testing standards that guarantee functional stability, 
 * **Test-Driven Design:** Write unit tests alongside logic implementation.
 * **Component Testing:** Use React Testing Library to test user behaviors rather than component implementation details.
 * **API Testing:** Write integration tests using Supertest/Jest to hit REST/USSD API endpoints and verify database side-effects.
-* **Deterministic Contract Testing:** Run tests against a local EVM node using Hardhat/Foundry, checking all failure modes, reentrancy vectors, and boundary gas limits.
+* **Deterministic Contract Testing:** Run Solidity tests using Foundry (forge test), checking all failure modes, reentrancy vectors, fuzzing inputs, and boundary gas limits.
 
 ---
 
@@ -28,14 +28,18 @@ To enforce comprehensive testing standards that guarantee functional stability, 
 
 ## 📐 Code Conventions
 
-* **Descriptive Test Blocks:** Use nested `describe` blocks representing module, function, and state contexts.
-  ```typescript
-  describe("LoanEscrow Smart Contract", () => {
-    describe("disburseFunds()", () => {
-      it("should disburse funds if loan is approved and collateral locked", async () => { ... });
-      it("should revert if caller is not the co-op supervisor", async () => { ... });
-    });
-  });
+* **Descriptive Test Blocks:** Use descriptive test function names in Solidity following the `test[State]_[Behavior]` convention.
+  ```solidity
+  contract BikkoLendingPoolTest is Test {
+      function testApproveLoan_LocksCollateral() public {
+          // Arrange
+          // Act
+          // Assert
+      }
+      function testApproveLoan_RevertsIfNotAgent() public {
+          // Expect revert...
+      }
+  }
   ```
 * **Arrange-Act-Assert Pattern:** Structure test bodies with clear setup, action, and assertions.
 

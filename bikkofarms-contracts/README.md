@@ -9,11 +9,9 @@ Solidity smart contracts for BikkoChain on the Lisk EVM (L2). Handles harvest to
 | Technology | Purpose |
 |---|---|
 | Solidity ^0.8.20 | Smart contract language |
-| Hardhat 2.x | Development, compilation, testing, deployment |
+| Foundry (forge) | Development, compilation, testing, deployment |
 | OpenZeppelin v5 | Base contract libraries |
-| ethers v6 | Scripts and test utilities |
 | Slither | Static security analysis (CI gate) |
-| TypeChain | TypeScript typings for contracts |
 
 ---
 
@@ -71,23 +69,23 @@ Provides cocoa and coffee USD/kg prices to `BikkoLendingPool`. Updated daily by 
 pnpm install
 
 # Compile contracts
-pnpm hardhat compile
+forge build
 
-# Run tests (local Hardhat node)
-pnpm hardhat test
+# Run tests
+forge test
 
-# Run specific test file
-pnpm hardhat test test/BikkoLendingPool.test.ts
+# Run specific test file (contract)
+forge test --match-path test/BikkoLendingPool.t.sol
 
 # Gas report
-REPORT_GAS=true pnpm hardhat test
+forge test --gas-report
 
 # Check contract sizes
-pnpm hardhat size-contracts
+forge build --sizes
 
 # Run Slither static analysis
 pip3 install slither-analyzer
-slither contracts/ --exclude-low --exclude-informational
+slither src/ --exclude-low --exclude-informational
 ```
 
 ---
@@ -96,13 +94,14 @@ slither contracts/ --exclude-low --exclude-informational
 
 ```bash
 # Deploy to Lisk Sepolia testnet
-pnpm hardhat run scripts/deploy.ts --network liskSepolia
+forge script script/Deploy.s.sol --rpc-url liskSepolia --broadcast
 
 # Verify on Blockscout (Lisk Sepolia explorer)
-pnpm hardhat verify --network liskSepolia DEPLOYED_ADDRESS constructor_arg1
+forge verify-contract DEPLOYED_ADDRESS src/BikkoLendingPool.sol:BikkoLendingPool --rpc-url liskSepolia --verifier blockscout --verifier-url https://sepolia-blockscout.lisk.com/api
 
 # Export ABIs to backend (run after any contract change)
-pnpm run export-abis
+# ABIs can be copied from out/ContractName.sol/ContractName.json
+cp out/BikkoLendingPool.sol/BikkoLendingPool.json ../bikkofarms-backend/src/config/abis/
 ```
 
 **After deployment**, update:

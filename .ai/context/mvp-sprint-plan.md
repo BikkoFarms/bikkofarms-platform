@@ -14,7 +14,7 @@ Detailed 2-week sprint plan for the BikkoChain MVP. The goal is to have a workin
 
 ### Day 1–2: Environment Setup
 
-- [ ] Initialize monorepo: `bikkofarms-backend/`, `bikkofarms-contracts/`, `bikkofarms-dashboard/`
+- [ ] Initialize monorepo: `bikkofarms-backend/`, `bikkofarms-contracts/`, `bikkofarms-dashboard/`, `bikkofarms-ussd/`, `bikkofarms-whatsappbot/`
 - [ ] `docker-compose.yml` in `bikkofarms-backend/`: PostgreSQL 16 + Redis 7 running locally
 - [ ] Prisma schema defined (see `context/database-schema.md`) and first migration run
 - [ ] Express server + TypeScript compiling with `ts-node-dev`
@@ -25,12 +25,12 @@ Detailed 2-week sprint plan for the BikkoChain MVP. The goal is to have a workin
 
 ### Day 3–4: Smart Contract Skeleton
 
-- [ ] Hardhat project configured for Lisk Sepolia (chainId: 4242)
+- [ ] Foundry project configured for Lisk Sepolia (foundry.toml)
 - [ ] `HarvestToken.sol` (ERC-1155 + MINTER_ROLE) deployed to Lisk Sepolia testnet
 - [ ] `BikkoLendingPool.sol` skeleton with `applyLoan()`, `approveLoan()`, `repayLoan()` deployed
 - [ ] `BikkoOracle.sol` (admin-controlled price oracle) deployed
 - [ ] `TransparentUpgradeableProxy` wrapping `BikkoLendingPool.sol`
-- [ ] Unit tests for all contract functions (Hardhat local node)
+- [ ] Unit tests for all contract functions (Forge)
 - [ ] Slither passing zero high-severity warnings
 - [ ] Contract addresses saved to `bikkofarms-contracts/.env.deployed`
 

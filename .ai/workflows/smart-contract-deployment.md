@@ -20,7 +20,7 @@ Procedures for executing safe deployments of BikkoChain contracts to testnets an
 * Fetch the target Lisk Network RPC endpoint URL.
 
 ### 3. Dry-Run (Local Simulation)
-* Run a local deploy dry-run using Hardhat/Foundry against a local fork of Lisk Sepolia/Mainnet.
+* Run a local deploy dry-run using Foundry (Anvil fork) against a local fork of Lisk Sepolia/Mainnet.
 * Assert that the contract deploys within gas limits and that initializers configure variables correctly.
 
 ### 4. Execute Deploy

@@ -18,7 +18,7 @@ Define engineering standards for the three core smart contracts of BikkoChain:
 * **Upgrade Pattern — TransparentUpgradeableProxy only for BikkoLendingPool:** `HarvestToken.sol` and `BikkoOracle.sol` are NOT upgradeable. Only `BikkoLendingPool.sol` uses the proxy. 7-day timelock on the proxy admin for mainnet.
 * **Events for State Tracking:** Emit events on ALL state changes: `LoanCreated`, `LoanApproved`, `LoanRepaid`, `CollateralLiquidated`, `HarvestTokenized`, `PriceUpdated`. These are indexed to PostgreSQL by `syncEvents.ts`.
 * **Admin Oracle for MVP:** `BikkoOracle.sol` uses `updateCocoaPrice(uint256 usdCentsPerKg)` called by `ORACLE_UPDATER_ROLE`. Store prices as USD cents to avoid floating point (e.g. `320` = $3.20/kg). Add 48h staleness guard in `BikkoLendingPool.sol`.
-* **Toolchain:** Hardhat (NOT Foundry) for MVP. Hardhat is sufficient and simpler. Foundry can be added in Phase 2 for fuzz testing.
+* **Toolchain:** Foundry (forge) as the primary toolchain for compilation, tests, deployment scripting, and fuzzing.
 
 ---
 
@@ -27,7 +27,7 @@ Define engineering standards for the three core smart contracts of BikkoChain:
 * **Strict Solidity Version:** Use `pragma solidity ^0.8.20;` exactly — no higher, no ranges.
 * **Access Control Roles:** `MINTER_ROLE` (backend wallet), `AGENT_ROLE` (co-op agents), `ADMIN_ROLE` (multisig/CTO), `ORACLE_UPDATER_ROLE` (backend cron wallet).
 * **No Floating Pragmas:** Never use `pragma solidity >=0.8.0;` — always exact caret version `^0.8.20`.
-* **Lisk Network:** Deploy to Lisk Sepolia (chainId: 4242) for testing, Lisk Mainnet (chainId: 1135) for production. See `context/architecture.md` for hardhat.config.
+* **Lisk Network:** Deploy to Lisk Sepolia (chainId: 4242) for testing, Lisk Mainnet (chainId: 1135) for production. See `context/architecture.md` for foundry.toml.
 * **USDC Safety:** Always use `SafeERC20.safeTransfer()` — never `.transfer()` directly on USDC.
 
 ---

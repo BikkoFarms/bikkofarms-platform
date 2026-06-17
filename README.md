@@ -10,9 +10,11 @@ A farmer dials `*713*77#` or messages a WhatsApp bot, commits their future harve
 
 | Package | Description | Stack |
 |---|---|---|
-| [`bikkofarms-backend/`](./bikkofarms-backend/) | REST API, USSD handler, WhatsApp bot, BullMQ workers | Node.js 20, Express 4, Prisma, Redis |
-| [`bikkofarms-contracts/`](./bikkofarms-contracts/) | Smart contracts (HarvestToken, LendingPool, Oracle) | Solidity 0.8.20, Hardhat, OpenZeppelin v5 |
+| [`bikkofarms-backend/`](./bikkofarms-backend/) | REST API, webhook routes, BullMQ workers | Node.js 20, Express 4, Prisma, Redis |
+| [`bikkofarms-contracts/`](./bikkofarms-contracts/) | Smart contracts (HarvestToken, LendingPool, Oracle) | Solidity 0.8.20, Foundry, OpenZeppelin v5 |
 | [`bikkofarms-dashboard/`](./bikkofarms-dashboard/) | Co-op Agent dashboard (loan approval) | React 18, Vite, TanStack Query, shadcn/ui |
+| [`bikkofarms-ussd/`](./bikkofarms-ussd/) | Stateless USSD client gateway | Africa's Talking, Node.js, Redis |
+| [`bikkofarms-whatsappbot/`](./bikkofarms-whatsappbot/) | WhatsApp Cloud API bot client | Meta Cloud API, Node.js, Redis |
 
 ---
 
@@ -22,6 +24,7 @@ A farmer dials `*713*77#` or messages a WhatsApp bot, commits their future harve
 - Node.js 20 LTS
 - pnpm 9+
 - Docker Desktop
+- Foundry (forge, cast, anvil, chisel)
 
 ### 1. Clone and Install
 
@@ -92,7 +95,7 @@ See [`.ai/context/environment-variables.md`](./.ai/context/environment-variables
 
 ## 🧱 Architecture
 
-See full architecture documentation: [`.ai/context/architecture.md`](./.ai/context/architecture.md)
+See full architecture documentation: [`system_architecture.md`](./system_architecture.md) and [`.ai/context/architecture.md`](./.ai/context/architecture.md)
 
 **System flow:**
 ```
@@ -102,7 +105,7 @@ Farmer (WhatsApp/USSD)
     → PostgreSQL (loan stored as PENDING)
     → Agent Dashboard (approval)
     → BullMQ disbursement-queue
-    → Lisk Smart Contract (collateral lock)
+    → Lisk Smart Contract (collateral lock via Forge-compiled contracts)
     → Kotani Pay (USDC → GHS)
     → MTN MoMo / AirtelTigo (farmer receives cash)
 ```
@@ -129,9 +132,9 @@ pnpm --filter bikkofarms-backend dev
 pnpm --filter bikkofarms-backend test
 
 # Contracts only
-pnpm --filter bikkofarms-contracts compile
+pnpm --filter bikkofarms-contracts build
 pnpm --filter bikkofarms-contracts test
-pnpm --filter bikkofarms-contracts hardhat run scripts/deploy.ts --network liskSepolia
+pnpm --filter bikkofarms-contracts forge script script/Deploy.s.sol --rpc-url liskSepolia --broadcast
 
 # Dashboard only
 pnpm --filter bikkofarms-dashboard dev
