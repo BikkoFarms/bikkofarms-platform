@@ -141,7 +141,7 @@ sequenceDiagram
     Note over Farmer, Chain: Phase A: Onboarding & Tokenization
     Farmer->>Client: Register name, GPS, national ID
     Client->>Backend: POST /api/v1/farmers
-    Backend->>DB: Encrypt name & ID; insert record
+    Backend->>DB: Encrypt name & ID and insert record
     Backend->>Chain: Mint HarvestToken (ERC-1155 NFT) to farmer wallet
     Chain-->>Backend: Return NFT tokenId
     Backend->>DB: Link tokenId to Farmer record
@@ -172,7 +172,7 @@ sequenceDiagram
 
     Note over Farmer, Chain: Phase D: Repayment & Collateral Release
     Farmer->>Kotani: Send GHS/KES mobile money repayment
-    Kotani->>Chain: Swap fiat → USDC; transfer USDC to LendingPool
+    Kotani->>Chain: Swap fiat to USDC and transfer USDC to LendingPool
     Backend->>Chain: BikkoLendingPool.repayLoan(loanId)
     Note over Chain: Release HarvestToken NFT back to farmer wallet
     Chain-->>Backend: Emit LoanRepaid event
