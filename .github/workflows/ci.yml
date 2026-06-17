@@ -1,0 +1,226 @@
+name: BikkoChain Platform CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+
+env:
+  NODE_VERSION: '20.x'
+
+jobs:
+  # ─────────────────────────────────────────────
+  # Backend: Lint, TypeScript check, Tests
+  # ─────────────────────────────────────────────
+  backend:
+    name: Backend — Lint & Test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: bikkofarms-backend
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: bikkochain_test
+          POSTGRES_USER: bikko
+          POSTGRES_PASSWORD: test_password
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        run: echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: .
+
+      - name: TypeScript check
+        run: pnpm tsc --noEmit
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Run Prisma migrations (test DB)
+        run: pnpm prisma migrate deploy
+        env:
+          DATABASE_URL: postgresql://bikko:test_password@localhost:5432/bikkochain_test
+
+      - name: Run unit & integration tests
+        run: pnpm test --coverage
+        env:
+          DATABASE_URL: postgresql://bikko:test_password@localhost:5432/bikkochain_test
+          REDIS_URL: redis://localhost:6379
+          JWT_SECRET: test_jwt_secret_minimum_32_chars_long
+          NODE_ENV: test
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: bikkofarms-backend/coverage/
+
+  # ─────────────────────────────────────────────
+  # Smart Contracts: Compile, Static Analysis, Tests
+  # ─────────────────────────────────────────────
+  contracts:
+    name: Contracts — Compile & Test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: bikkofarms-contracts
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: .
+
+      - name: Compile contracts
+        run: pnpm hardhat compile
+
+      - name: Run contract tests
+        run: pnpm hardhat test --network hardhat
+
+      - name: Check contract sizes
+        run: pnpm hardhat size-contracts
+
+      - name: Install Slither
+        run: pip3 install slither-analyzer
+
+      - name: Run Slither static analysis
+        run: slither contracts/ --exclude-low --exclude-informational --exclude-optimization
+        continue-on-error: false  # FAIL on high/medium findings
+
+  # ─────────────────────────────────────────────
+  # Dashboard: Build & Lint
+  # ─────────────────────────────────────────────
+  dashboard:
+    name: Dashboard — Build & Lint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: bikkofarms-dashboard
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: .
+
+      - name: TypeScript check
+        run: pnpm tsc --noEmit
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Build
+        run: pnpm build
+
+  # ─────────────────────────────────────────────
+  # Public Website: Build & Lint
+  # ─────────────────────────────────────────────
+  website:
+    name: Website — Build & Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: TypeScript check
+        run: pnpm tsc --noEmit
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Build
+        run: pnpm build
+
+  # ─────────────────────────────────────────────
+  # Secrets Scan (runs on every push)
+  # ─────────────────────────────────────────────
+  secrets-scan:
+    name: Secrets Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Scan for secrets
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          extra_args: --only-verified
