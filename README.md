@@ -149,8 +149,8 @@ See [`.ai/context/mvp-sprint-plan.md`](../BikkoFarms-Website/.ai/context/mvp-spr
 
 ## 🔒 Security
 
-- **Private keys:** Never in `.env` committed to git. Use `.env` locally (gitignored), AWS Secrets Manager in production.
-- **Backend wallet:** Signs transactions as relayer. In production: AWS KMS.
+- **Private keys:** Never in `.env` committed to git. Use `.env` locally (gitignored), Render encrypted environment variables in production.
+- **Backend wallet:** Signs transactions as relayer. In production: Render Secret env var (encrypted at rest). Phase 2: Doppler for rotation.
 - **Webhook verification:** WhatsApp (`X-Hub-Signature-256`) and Kotani Pay (HMAC) both verified on every request.
 - **Static analysis:** Slither runs on every PR (see `.github/workflows/ci.yml`).
 
