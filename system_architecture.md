@@ -129,13 +129,13 @@ Below is the chronological sequence of events, from first onboarding to repaymen
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Farmer as Farmer (USSD / Bot)
-    participant Client as Client Gateway (Bot/USSD)
+    actor Farmer as "Farmer (USSD / Bot)"
+    participant Client as "Client Gateway (Bot/USSD)"
     participant Backend as Express Backend
     participant Redis as Redis Cache
     participant DB as PostgreSQL DB
     participant Chain as Lisk EVM L2
-    actor Agent as Co-op Agent (Dashboard)
+    actor Agent as "Co-op Agent (Dashboard)"
     participant Kotani as Kotani Pay API
 
     Note over Farmer, Chain: Phase A: Onboarding & Tokenization
