@@ -160,8 +160,8 @@ volumes:
 
 ## 🔗 Related Docs
 
-- [Environment Variables](../../BikkoFarms-Website/.ai/context/environment-variables.md)
-- [Database Schema](../../BikkoFarms-Website/.ai/context/database-schema.md)
-- [Job Queue Skill](../../BikkoFarms-Website/.ai/skills/job-queue.md)
-- [API Development Skill](../../BikkoFarms-Website/.ai/skills/api-development.md)
-- [Kotani Pay Skill](../../BikkoFarms-Website/.ai/skills/kotani-pay-integration.md)
+- [Environment Variables](../../.ai/context/environment-variables.md)
+- [Database Schema](../../.ai/context/database-schema.md)
+- [Job Queue Skill](../../.ai/skills/job-queue.md)
+- [API Development Skill](../../.ai/skills/api-development.md)
+- [Kotani Pay Skill](../../.ai/skills/kotani-pay-integration.md)

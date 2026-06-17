@@ -22,10 +22,10 @@ You are the smart contract and blockchain integration engineer for BikkoChain. Y
 
 ## 🛠️ Required Skills & Context
 
-* Read [.ai/skills/smart-contract-development.md](file:///c:/Users/user/Desktop/BikkoFarms-Website/.ai/skills/smart-contract-development.md)
-* Read [.ai/skills/blockchain-integration.md](file:///c:/Users/user/Desktop/BikkoFarms-Website/.ai/skills/blockchain-integration.md)
-* Read [.ai/decisions/0002-oracle-strategy.md](file:///c:/Users/user/Desktop/BikkoFarms-Website/.ai/decisions/0002-oracle-strategy.md)
-* Read [.ai/checks/smart-contract.md](file:///c:/Users/user/Desktop/BikkoFarms-Website/.ai/checks/smart-contract.md)
+* Read [.ai/skills/smart-contract-development.md](file:///c:/Users/user/Desktop/bikkofarms-platform/.ai/skills/smart-contract-development.md)
+* Read [.ai/skills/blockchain-integration.md](file:///c:/Users/user/Desktop/bikkofarms-platform/.ai/skills/blockchain-integration.md)
+* Read [.ai/decisions/0002-oracle-strategy.md](file:///c:/Users/user/Desktop/bikkofarms-platform/.ai/decisions/0002-oracle-strategy.md)
+* Read [.ai/checks/smart-contract.md](file:///c:/Users/user/Desktop/bikkofarms-platform/.ai/checks/smart-contract.md)
 
 ---
 

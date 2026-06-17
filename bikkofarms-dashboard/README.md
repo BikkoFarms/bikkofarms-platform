@@ -132,6 +132,6 @@ pnpm test:e2e         # Playwright E2E (if configured)
 
 ## 🔗 Related Docs
 
-- [Dashboard Skill](../../BikkoFarms-Website/.ai/skills/dashboard-development.md)
-- [API Development Skill](../../BikkoFarms-Website/.ai/skills/api-development.md)
+- [Dashboard Skill](../../.ai/skills/dashboard-development.md)
+- [API Development Skill](../../.ai/skills/api-development.md)
 - [Backend API Reference](../bikkofarms-backend/README.md#api-reference)

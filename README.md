@@ -81,7 +81,7 @@ cd bikkofarms-backend
 cp .env.example .env
 ```
 
-See [`.ai/context/environment-variables.md`](../BikkoFarms-Website/.ai/context/environment-variables.md) for all variables and their descriptions.
+See [`.ai/context/environment-variables.md`](./.ai/context/environment-variables.md) for all variables and their descriptions.
 
 **Critical for development:**
 - `AT_USERNAME=sandbox` (Africa's Talking sandbox, not production)
@@ -92,7 +92,7 @@ See [`.ai/context/environment-variables.md`](../BikkoFarms-Website/.ai/context/e
 
 ## 🧱 Architecture
 
-See full architecture documentation: [`.ai/context/architecture.md`](../BikkoFarms-Website/.ai/context/architecture.md)
+See full architecture documentation: [`.ai/context/architecture.md`](./.ai/context/architecture.md)
 
 **System flow:**
 ```
@@ -141,7 +141,7 @@ pnpm --filter bikkofarms-dashboard dev
 
 ## 📋 MVP Sprint Plan
 
-See [`.ai/context/mvp-sprint-plan.md`](../BikkoFarms-Website/.ai/context/mvp-sprint-plan.md) for the 14-day sprint checklist.
+See [`.ai/context/mvp-sprint-plan.md`](./.ai/context/mvp-sprint-plan.md) for the 14-day sprint checklist.
 
 **Current status:** See individual package READMEs for progress.
 
@@ -169,12 +169,12 @@ See [`.ai/context/mvp-sprint-plan.md`](../BikkoFarms-Website/.ai/context/mvp-spr
 
 ## 📚 Documentation
 
-- [Product Context](./../BikkoFarms-Website/.ai/context/product.md)
-- [Architecture](./../BikkoFarms-Website/.ai/context/architecture.md)
-- [Database Schema](./../BikkoFarms-Website/.ai/context/database-schema.md)
-- [Environment Variables](./../BikkoFarms-Website/.ai/context/environment-variables.md)
-- [MVP Sprint Plan](./../BikkoFarms-Website/.ai/context/mvp-sprint-plan.md)
-- [AI Engineering Rules](./../BikkoFarms-Website/.ai/rules/agent-rules.md)
+- [Product Context](././.ai/context/product.md)
+- [Architecture](././.ai/context/architecture.md)
+- [Database Schema](././.ai/context/database-schema.md)
+- [Environment Variables](././.ai/context/environment-variables.md)
+- [MVP Sprint Plan](././.ai/context/mvp-sprint-plan.md)
+- [AI Engineering Rules](././.ai/rules/agent-rules.md)
 
 ---
 
