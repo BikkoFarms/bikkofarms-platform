@@ -4,6 +4,12 @@ Event-driven, conversational WhatsApp Bot client utilizing **Meta's official Wha
 
 ---
 
+## 📐 Architecture
+
+For full technical specifications, signature validations, and dialogue window guidelines, see the [**WhatsApp Bot Architecture**](./ARCHITECTURE.md) document.
+
+---
+
 ## 🛠️ Stack & Concepts
 
 | Technology | Purpose |

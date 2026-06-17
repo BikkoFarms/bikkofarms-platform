@@ -4,6 +4,12 @@ Stateless, event-driven USSD gateway handler for smallholder farmers using featu
 
 ---
 
+## 📐 Architecture
+
+For full technical specifications, state machines, and topological flows, see the [**USSD Client Architecture**](./ARCHITECTURE.md) document.
+
+---
+
 ## 🛠️ Stack & Concepts
 
 | Technology | Purpose |

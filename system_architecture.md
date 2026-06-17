@@ -114,11 +114,11 @@ graph TB
 ```
 
 ### 3.1 Monorepo Package Breakdown
-1. **`bikkofarms-ussd`:** Lightweight client managing stateless Africa's Talking session redirects and dialogue navigation.
-2. **`bikkofarms-whatsappbot`:** Client processing WhatsApp message templates, HMAC signature verification, and Meta Cloud API messages.
+1. **`bikkofarms-ussd`:** Lightweight client managing stateless Africa's Talking session redirects and dialogue navigation. For implementation details, see [**USSD Client Architecture**](./bikkofarms-ussd/ARCHITECTURE.md).
+2. **`bikkofarms-whatsappbot`:** Client processing WhatsApp message templates, HMAC signature verification, and Meta Cloud API messages. For implementation details, see [**WhatsApp Bot Architecture**](./bikkofarms-whatsappbot/ARCHITECTURE.md).
 3. **`bikkofarms-backend`:** Central API engine. Houses database routers, background BullMQ workers, and the blockchain service.
 4. **`bikkofarms-dashboard`:** UI client for cooperative managers to inspect credit applications, track repayments, and monitor default rates.
-5. **`bikkofarms-contracts`:** Foundry-compiled smart contracts executing secure lending, collateral locking, and price feed updates.
+5. **`bikkofarms-contracts`:** Foundry-compiled smart contracts executing secure lending, collateral locking, and price feed updates. For security hierarchy and access maps, see [**Smart Contract Architecture**](./bikkofarms-contracts/ARCHITECTURE.md).
 
 ---
 
