@@ -16,6 +16,7 @@ jobs:
   backend:
     name: Backend — Lint & Test
     runs-on: ubuntu-latest
+    if: ${{ hashFiles('bikkofarms-backend/package.json') != '' }}
     defaults:
       run:
         working-directory: bikkofarms-backend
@@ -102,6 +103,7 @@ jobs:
   contracts:
     name: Contracts — Compile & Test
     runs-on: ubuntu-latest
+    if: ${{ hashFiles('bikkofarms-contracts/package.json') != '' || hashFiles('bikkofarms-contracts/foundry.toml') != '' || hashFiles('bikkofarms-contracts/hardhat.config.js') != '' }}
     defaults:
       run:
         working-directory: bikkofarms-contracts
@@ -145,6 +147,7 @@ jobs:
   dashboard:
     name: Dashboard — Build & Lint
     runs-on: ubuntu-latest
+    if: ${{ hashFiles('bikkofarms-dashboard/package.json') != '' }}
     defaults:
       run:
         working-directory: bikkofarms-dashboard
@@ -181,6 +184,7 @@ jobs:
   website:
     name: Website — Build & Lint
     runs-on: ubuntu-latest
+    if: ${{ hashFiles('website/package.json') != '' || hashFiles('bikkofarms-website/package.json') != '' || hashFiles('BikkoFarms-Website/package.json') != '' }}
 
     steps:
       - uses: actions/checkout@v4
