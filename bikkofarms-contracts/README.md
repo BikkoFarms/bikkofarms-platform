@@ -23,29 +23,28 @@ Tokenizes future crop harvests as semi-fungible tokens. Each token represents a 
 **Key functions:**
 - `mint(address to, uint256 id, uint256 amount, string memory uri, bytes memory data)` — `MINTER_ROLE` only
 - `uri(uint256 tokenId)` — Returns `ipfs://{CID}` for token metadata
-- `safeTransferFrom(...)` — Used to lock collateral into `BikkoLendingPool`
+- `safeTransferFrom(...)` — Used to lock collateral into `BikkoLendingVault`
 
-### `BikkoLendingPool.sol` (Upgradeable via TransparentProxy)
-Core lending lifecycle management. Wrapped in `TransparentUpgradeableProxy` with 7-day timelock admin.
+### `BikkoLendingVault.sol` (Upgradeable via TransparentProxy)
+Core private lending vault management. Stores USDC capital and manages farmer collateral. Wrapped in `TransparentUpgradeableProxy` with 7-day timelock admin.
 
 **Key functions:**
 - `registerFarmer(address wallet, string name, string phone, string village)`
-- `applyLoan(uint256 loanId, address farmer, uint256 amount, uint256 harvestKg, uint256 collateralTokenId)`
-- `approveLoan(uint256 loanId)` — `AGENT_ROLE` only. Emits `LoanApproved`
-- `repayLoan(uint256 loanId)` — Releases collateral back to farmer
-- `liquidate(uint256 loanId)` — `ADMIN_ROLE` only. Transfers collateral to admin
+- `lockCollateral(uint256 tokenId, bytes32 loanId)` — `AGENT_ROLE` only. Emits `CollateralLocked`
+- `repayLoan(bytes32 loanId)` — Releases collateral back to farmer
+- `liquidate(bytes32 loanId)` — `ADMIN_ROLE` only. Transfers collateral to Gnosis Safe admin
 
-**Key events:** `LoanCreated`, `LoanApproved`, `LoanRepaid`, `CollateralLiquidated`
+**Key events:** `FarmerRegistered`, `CollateralLocked`, `LoanRepaid`, `CollateralLiquidated`
 
 ### `BikkoOracle.sol` (Admin-Controlled MVP Oracle)
-Provides cocoa and coffee USD/kg prices to `BikkoLendingPool`. Updated daily by backend BullMQ cron.
+Provides cocoa and coffee USD/kg prices to `BikkoLendingVault`. Updated daily by backend BullMQ cron.
 
 **Key functions:**
 - `updateCocoaPrice(uint256 usdCentsPerKg)` — `ORACLE_UPDATER_ROLE` only
 - `updateCoffeePrice(uint256 usdCentsPerKg)` — `ORACLE_UPDATER_ROLE` only
 - `getCocoaPrice()` — returns current price in USD cents per kg
 - `getCoffeePrice()` — returns current price in USD cents per kg
-- `lastUpdated()` — timestamp of last price update (48h staleness guard in LendingPool)
+- `lastUpdated()` — timestamp of last price update (48h staleness guard in LendingVault)
 
 > **Note:** Chainlink does NOT have cocoa/coffee feeds on Lisk (as of June 2026). Chainlink integration is Phase 2. See ADR `0002-oracle-strategy.md`.
 
@@ -75,7 +74,7 @@ forge build
 forge test
 
 # Run specific test file (contract)
-forge test --match-path test/BikkoLendingPool.t.sol
+forge test --match-path test/BikkoLendingVault.t.sol
 
 # Gas report
 forge test --gas-report
@@ -97,11 +96,11 @@ slither src/ --exclude-low --exclude-informational
 forge script script/Deploy.s.sol --rpc-url liskSepolia --broadcast
 
 # Verify on Blockscout (Lisk Sepolia explorer)
-forge verify-contract DEPLOYED_ADDRESS src/BikkoLendingPool.sol:BikkoLendingPool --rpc-url liskSepolia --verifier blockscout --verifier-url https://sepolia-blockscout.lisk.com/api
+forge verify-contract DEPLOYED_ADDRESS src/BikkoLendingVault.sol:BikkoLendingVault --rpc-url liskSepolia --verifier blockscout --verifier-url https://sepolia-blockscout.lisk.com/api
 
 # Export ABIs to backend (run after any contract change)
 # ABIs can be copied from out/ContractName.sol/ContractName.json
-cp out/BikkoLendingPool.sol/BikkoLendingPool.json ../bikkofarms-backend/src/config/abis/
+cp out/BikkoLendingVault.sol/BikkoLendingVault.json ../bikkofarms-backend/src/config/abis/
 ```
 
 **After deployment**, update:
@@ -113,7 +112,7 @@ cp out/BikkoLendingPool.sol/BikkoLendingPool.json ../bikkofarms-backend/src/conf
 
 ## 🔒 Security
 
-- `ReentrancyGuard` on all external state-changing functions in `BikkoLendingPool`
+- `ReentrancyGuard` on all external state-changing functions in `BikkoLendingVault`
 - `Pausable` — admin can halt all lending in emergency
 - `SafeERC20` for all USDC transfers
 - `AccessControl` roles: `MINTER_ROLE`, `AGENT_ROLE`, `ADMIN_ROLE`, `ORACLE_UPDATER_ROLE`
@@ -127,7 +126,7 @@ cp out/BikkoLendingPool.sol/BikkoLendingPool.json ../bikkofarms-backend/src/conf
 | Contract | Coverage Target |
 |---|---|
 | `HarvestToken.sol` | 100% branch coverage |
-| `BikkoLendingPool.sol` | 100% branch coverage |
+| `BikkoLendingVault.sol` | 100% branch coverage |
 | `BikkoOracle.sol` | 100% branch coverage |
 
 ---

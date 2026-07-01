@@ -27,9 +27,9 @@ Detailed 2-week sprint plan for the BikkoChain MVP. The goal is to have a workin
 
 - [ ] Foundry project configured for Lisk Sepolia (foundry.toml)
 - [ ] `HarvestToken.sol` (ERC-1155 + MINTER_ROLE) deployed to Lisk Sepolia testnet
-- [ ] `BikkoLendingPool.sol` skeleton with `applyLoan()`, `approveLoan()`, `repayLoan()` deployed
+- [ ] `BikkoLendingVault.sol` skeleton with `lockCollateral()`, `repayLoan()` deployed
 - [ ] `BikkoOracle.sol` (admin-controlled price oracle) deployed
-- [ ] `TransparentUpgradeableProxy` wrapping `BikkoLendingPool.sol`
+- [ ] `TransparentUpgradeableProxy` wrapping `BikkoLendingVault.sol`
 - [ ] Unit tests for all contract functions (Forge)
 - [ ] Slither passing zero high-severity warnings
 - [ ] Contract addresses saved to `bikkofarms-contracts/.env.deployed`
@@ -77,7 +77,7 @@ Detailed 2-week sprint plan for the BikkoChain MVP. The goal is to have a workin
 
 - [ ] `BlockchainService.ts`: ethers.js v6 connecting to Lisk Sepolia
 - [ ] `HarvestToken.mint()` call on farmer registration
-- [ ] `BikkoLendingPool.approveLoan()` call on agent approval
+- [ ] `BikkoLendingVault.lockCollateral()` call on agent approval
 - [ ] `HarvestToken.safeTransferFrom()` to lock collateral on approval
 - [ ] Event listener process: sync `LoanApproved`, `LoanRepaid` events to PostgreSQL
 - [ ] `BikkoOracle.updatePrice()` daily BullMQ cron job working

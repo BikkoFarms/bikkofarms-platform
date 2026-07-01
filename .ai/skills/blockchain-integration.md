@@ -55,14 +55,14 @@ The `BlockchainService.ts` is the single point of contact between the Express ba
 // services/BlockchainService.ts
 import { ethers } from 'ethers';
 import { HarvestTokenABI } from '../config/abis/HarvestToken';
-import { BikkoLendingPoolABI } from '../config/abis/BikkoLendingPool';
+import { BikkoLendingVaultABI } from '../config/abis/BikkoLendingVault';
 import { BikkoOracleABI } from '../config/abis/BikkoOracle';
 
 export class BlockchainService {
   private provider: ethers.FallbackProvider;
   private signer: ethers.Wallet;
   private harvestToken: ethers.Contract;
-  private lendingPool: ethers.Contract;
+  private lendingVault: ethers.Contract;
   private oracle: ethers.Contract;
 
   constructor() {
@@ -72,7 +72,7 @@ export class BlockchainService {
     ]);
     this.signer = new ethers.Wallet(process.env.BACKEND_WALLET_PRIVATE_KEY!, this.provider);
     this.harvestToken = new ethers.Contract(process.env.HARVEST_TOKEN_ADDRESS!, HarvestTokenABI, this.signer);
-    this.lendingPool = new ethers.Contract(process.env.LENDING_POOL_ADDRESS!, BikkoLendingPoolABI, this.signer);
+    this.lendingVault = new ethers.Contract(process.env.LENDING_VAULT_ADDRESS!, BikkoLendingVaultABI, this.signer);
     this.oracle = new ethers.Contract(process.env.ORACLE_ADDRESS!, BikkoOracleABI, this.signer);
   }
 
@@ -95,23 +95,29 @@ export class BlockchainService {
     return { tokenId: Number(event.args.tokenId), txHash: tx.hash };
   }
 
-  async approveLoan(loanId: string): Promise<string> {
-    const tx = await this.lendingPool.approveLoan(loanId);
-    const receipt = await tx.wait(1);
-    if (receipt.status !== 1) throw new Error(`ApproveLoan tx failed: ${tx.hash}`);
-    return tx.hash;
-  }
+  async lockCollateral(
+    loanId: string,
+    farmerWallet: string,
+    tokenId: number,
+    amountUsdcCents: number,
+    harvestKg: number,
+    cropType: string
+  ): Promise<string> {
+    // Approve vault to transfer the NFT first (if not already done)
+    const approveTx = await this.harvestToken.setApprovalForAll(process.env.LENDING_VAULT_ADDRESS!, true);
+    await approveTx.wait(1);
 
-  async lockCollateral(tokenId: number, farmerWallet: string): Promise<string> {
-    const tx = await this.harvestToken.safeTransferFrom(
+    // Call lockCollateral on the vault
+    const tx = await this.lendingVault.lockCollateral(
+      ethers.zeroPadValue(ethers.toBeArray(loanId), 32),
       farmerWallet,
-      process.env.LENDING_POOL_ADDRESS!,
       tokenId,
-      1,
-      '0x'
+      amountUsdcCents,
+      harvestKg,
+      cropType
     );
     const receipt = await tx.wait(1);
-    if (receipt.status !== 1) throw new Error(`LockCollateral tx failed: ${tx.hash}`);
+    if (receipt.status !== 1) throw new Error(`lockCollateral tx failed: ${tx.hash}`);
     return tx.hash;
   }
 
@@ -130,7 +136,7 @@ export class BlockchainService {
 
 * **Never store private keys in code or logs.** Log only wallet address, never private key.
 * **Transaction nonce:** For concurrent transactions, lock nonce updates in Redis to avoid duplicate nonce errors.
-* **Gas limit:** Set explicit `gasLimit` on all transactions. Start with `300_000n` for `approveLoan`, `200_000n` for `mint`. Tune down after profiling.
+* **Gas limit:** Set explicit `gasLimit` on all transactions. Start with `300_000n` for `lockCollateral`, `200_000n` for `mint`. Tune down after profiling.
 * **Revert parsing:** Use `ethers.isCallException(error)` to detect contract reverts and extract the revert reason for logging.
 * **ABI files:** Export ABIs from Foundry compilation output (`out/ContractName.sol/ContractName.json`) and copy to `bikkofarms-backend/src/config/abis/` after each contract change.
 

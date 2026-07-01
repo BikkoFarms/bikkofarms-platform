@@ -6,7 +6,7 @@ Required checks before merging smart contract changes or deploying to any networ
 
 ## 🔒 Security (Zero Tolerance)
 
-- [ ] `ReentrancyGuard` applied to ALL external state-changing functions in `BikkoLendingPool.sol`
+- [ ] `ReentrancyGuard` applied to ALL external state-changing functions in `BikkoLendingVault.sol`
 - [ ] Checks-Effects-Interactions pattern strictly followed in every function
 - [ ] `SafeERC20.safeTransfer()` used for all ERC-20 (USDC) transfers — never `.transfer()` directly
 - [ ] `AccessControl` roles configured: `MINTER_ROLE`, `AGENT_ROLE`, `ADMIN_ROLE`, `ORACLE_UPDATER_ROLE`
@@ -19,7 +19,7 @@ Required checks before merging smart contract changes or deploying to any networ
 
 ## 🧪 Testing
 
-- [ ] 100% branch coverage on all financial functions (`applyLoan`, `approveLoan`, `repayLoan`, `liquidate`)
+- [ ] 100% branch coverage on all financial functions (`lockCollateral`, `repayLoan`, `liquidate`)
 - [ ] Unit tests cover: happy path, all revert cases, reentrancy attack simulation
 - [ ] Fuzz tests written for numeric inputs (loan amounts, harvest kg, prices)
 - [ ] Tests run on Forge local test engine only — no Lisk Sepolia in unit test suite
@@ -29,14 +29,14 @@ Required checks before merging smart contract changes or deploying to any networ
 ## 🔍 Static Analysis
 
 - [ ] `slither src/ --exclude-low --exclude-informational` passes with ZERO high/medium findings
-- [ ] Mythril scan run: `myth analyze src/BikkoLendingPool.sol --max-depth 10`
+- [ ] Mythril scan run: `myth analyze src/BikkoLendingVault.sol --max-depth 10`
 - [ ] OpenZeppelin contract versions pinned (not floating) in `package.json`
 
 ---
 
 ## 📋 Events & Indexing
 
-- [ ] All state changes emit events: `LoanCreated`, `LoanApproved`, `LoanRepaid`, `CollateralLiquidated`, `HarvestTokenized`
+- [ ] All state changes emit events: `FarmerRegistered`, `CollateralLocked`, `LoanRepaid`, `CollateralLiquidated`, `HarvestTokenized`
 - [ ] Event indexer in `bikkofarms-backend/src/jobs/syncEvents.ts` handles all emitted events
 - [ ] Events include sufficient data for full dashboard reconstruction without DB dependency
 
@@ -46,7 +46,7 @@ Required checks before merging smart contract changes or deploying to any networ
 
 - [ ] Deploy to Lisk Sepolia FIRST and test end-to-end before any mainnet consideration
 - [ ] Contract addresses saved to `bikkofarms-contracts/.env.deployed.sepolia` (or `.mainnet`)
-- [ ] `TransparentUpgradeableProxy` used for `BikkoLendingPool.sol` — NOT for `HarvestToken.sol` or `BikkoOracle.sol`
+- [ ] `TransparentUpgradeableProxy` used for `BikkoLendingVault.sol` — NOT for `HarvestToken.sol` or `BikkoOracle.sol`
 - [ ] 7-day timelock configured on proxy admin for mainnet
 - [ ] ABI files exported from Foundry out/ folder and copied to `bikkofarms-backend/src/config/abis/`
 - [ ] Deployment script (`script/Deploy.s.sol`) is idempotent and logs all addresses

@@ -61,7 +61,7 @@ This document defines the strict rule set that governs all AI coding tools and a
     - OpenZeppelin Contracts v5 for all base contracts
     - Solidity scripts (`script/Deploy.s.sol`) and tests (`test/*.t.sol`) in Solidity
     - MVP Oracle: `BikkoOracle.sol` admin-controlled price oracle — NOT Chainlink (Chainlink has no cocoa/coffee feeds on Lisk)
-    - Upgrade pattern: `TransparentUpgradeableProxy` with 7-day timelock on `BikkoLendingPool.sol`
+    - Upgrade pattern: `TransparentUpgradeableProxy` with 7-day timelock on `BikkoLendingVault.sol`
 
 13. **Frontend stack is fixed:**
     - Agent Dashboard: React 18 + Vite + TypeScript + TanStack Query v5 + Tailwind CSS v3 + shadcn/ui

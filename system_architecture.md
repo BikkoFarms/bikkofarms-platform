@@ -1,26 +1,28 @@
 # BikkoChain — Master System Architecture & Engineering Brief (A–Z)
 
 **Prepared for:** Technical Partners, Engineers, and Stakeholders  
-**Date:** June 2026  
-**Version:** 1.1 (Foundry & Multi-Client Edition)
+**Date:** July 2026  
+**Version:** 1.2 (TraceX & Private Vault Edition)
 
 ---
 
 ## 1. Executive Summary
 
-BikkoChain is a blockchain-powered agricultural micro-lending platform. It bridges the gap between decentralized finance (DeFi) and smallholder farmers in sub-Saharan Africa. Using a feature phone (via USSD) or a smartphone (via WhatsApp), a farmer tokenizes their future harvest crop (cocoa/coffee) as collateral, applies for a micro-loan, receives instant co-op agent approval, and has stablecoins (USDC) automatically swapped and disbursed as fiat (GHS/KES) directly to their mobile money account.
+BikkoChain is a blockchain-powered agricultural micro-lending platform. It bridges the gap between decentralized finance (DeFi) and smallholder farmers in sub-Saharan Africa. Shifting to a cooperative-led trust model, the platform leverages established agricultural cooperatives to onboard farmers, map crop plots, and verify yield records. 
+
+Using simple feature phones (via USSD) or smartphones (via WhatsApp), farmers register and apply for micro-loans. BikkoChain tokenizes cocoa harvests using **TraceX** tracking frameworks, anchors compliance events on **Lisk L2** (satisfying EUDR requirements), and automatically disburses cash directly to farmers' MTN MoMo wallets via the **Kotani Pay v3 API**. Loans are guaranteed under a co-op group-liability model, and derisked using **Pula Advisors Area Yield Index Insurance (AYII)**.
 
 ---
 
 ## 2. High-Level Stakeholder & User Flow (Non-Technical)
 
-This diagram describes how value, assets, and requests move between different users and entities:
+This diagram describes how value, assets, and requests move between different users, systems, and entities:
 
 ```mermaid
 graph TD
     subgraph Users ["Access Layer"]
         FARMER["Smallholder Farmer\n(Mobile Phone)"]
-        AGENT["Co-op Agent\n(Tablet / Web Dashboard)"]
+        AGENT["Co-op Agent\n(TraceX Mobile SDK)"]
     end
 
     subgraph Platform ["BikkoChain Core Platform"]
@@ -29,42 +31,48 @@ graph TD
         DB[(Secure Database)]
     end
 
+    subgraph TraceCompliance ["Compliance & Risk"]
+        TRACEX["TraceX Platform\n(Farm Mapping & Trace)"]
+        PULA["Pula Advisors\n(GLICO Crop Insurance)"]
+    end
+
     subgraph Financial ["DeFi & Mobile Settlement"]
-        CHAIN["Lisk EVM L2 Blockchain"]
+        CHAIN["Lisk EVM L2 Blockchain\n(Private Lending Vault)"]
         KOTANI["Kotani Pay API"]
         MOMO["Mobile Money Networks\n(MTN MoMo, M-Pesa)"]
     end
 
     %% User Interaction
     FARMER -->|1. Dial USSD code or send 'APPLY'| BOT
-    BOT -->|2. Relays details| BACK
-    BACK -->|3. Record loan request| DB
-    AGENT -->|4. Inspect & approve loan| BACK
+    AGENT -->|2. Maps plots & pre-harvest data| TRACEX
+    BOT -->|3. Relays details| BACK
+    BACK -->|4. Checks TraceX yield record| TRACEX
+    BACK -->|5. Books crop index insurance| PULA
+    BACK -->|6. Record loan request| DB
     
     %% Settlement Flow
-    BACK -->|5. Locks collateral NFT on Lisk L2| CHAIN
-    BACK -->|6. Transfers USDC to Kotani Pay| CHAIN
-    BACK -->|7. Disburse payout order| KOTANI
-    KOTANI -->|8. Pays out GHS/KES| MOMO
-    MOMO -->|9. Cash received!| FARMER
+    BACK -->|7. Anchors TraceX data & locks NFT| CHAIN
+    BACK -->|8. Transfers USDC to Kotani Pay| CHAIN
+    BACK -->|9. Disburse payout order| KOTANI
+    KOTANI -->|10. Pays out GHS/KES| MOMO
+    MOMO -->|11. Cash received!| FARMER
 ```
 
 ### 👤 The Farmer's Experience
-1. **Onboarding:** The farmer registers once by entering their Name, Village, and National ID number using a USSD menu (`*713*77#`) or WhatsApp.
-2. **Tokenization:** On-chain, a **Harvest Token NFT** is minted to represent their crop yield.
-3. **Borrowing:** The farmer applies for a loan (e.g. $150 USDC).
-4. **Cash Payout:** Once approved, the cash is deposited into their mobile money wallet in under 2 minutes. No crypto knowledge is required.
+1. **Onboarding:** The cooperative maps the farmer's plot boundaries and records yield forecasts using the **TraceX Mobile SDK** offline in the field.
+2. **Borrowing:** The farmer dials `*713*77#` (USSD) or messages the WhatsApp bot to request a loan.
+3. **Cash Payout:** Once approved, GHS is disbursed directly to their mobile money wallet in under 2 minutes. No blockchain knowledge is required.
 
 ### 💼 The Stakeholder & Liquidity Provider Experience
-- **Cooperative Agents:** Review physical farm details and approve loans via a secure React Web Dashboard.
-- **Liquidity Providers:** Yield-seeking capital is deposited into the `BikkoLendingPool` contract on Lisk L2 as USDC. When farmers repay, principal plus interest flows back to these pools.
-- **Auditors & Regulators:** Can verify crop locations (GPS data), harvest sizes, and deforestation-free compliance (EUDR) directly via metadata pinned on IPFS.
+- **Cooperatives:** Act as the trust nodes, guaranteeing loans under a group-liability model. Co-ops receive a 2% performance buffer if their farmers repay on time.
+- **Lenders (BikkoChain Vault):** In Phase 1, capital is supplied to a private lending vault (`BikkoLendingVault.sol`) funded directly by our founders and partners. In Phase 2, this is upgraded to a permissionless **Morpho Blue** pool.
+- **Insurers (Pula / GLICO):** Area Yield Index Insurance pays out directly to the platform if regional weather anomalies drop the average harvest yield below a set threshold.
 
 ---
 
 ## 3. Engineering Specification & Technical Architecture
 
-The architecture below maps every package, database, queue, and smart contract:
+The architecture below maps every monorepo package, database, queue, and integration endpoint:
 
 ```mermaid
 graph TB
@@ -79,12 +87,13 @@ graph TB
     subgraph Data ["State & Cache Layer"]
         PG[(PostgreSQL 16\nLoans, Farmers, Webhooks)]
         REDIS[(Redis 7\nBullMQ Queues & State Cache)]
-        IPFS[(IPFS via Pinata\nNFT Metadata JSON)]
     end
 
     subgraph External ["Gateways & Services"]
         AT["Africa's Talking USSD Gateway"]
         META["Meta Cloud API"]
+        TRACEX_API["TraceX Webhook & SDK"]
+        PULA_API["Pula Advisors API"]
         KP["Kotani Pay Portal"]
         DEFENDER["OpenZeppelin Defender\n(Monitoring & Auto-Actions)"]
     end
@@ -103,10 +112,11 @@ graph TB
     BACK_PKG -->|BullMQ Jobs| REDIS
     BACK_PKG -->|Prisma Read/Write| PG
     
-    %% Blockchain / Financial execution
-    BACK_PKG -->|Pin Metadata| IPFS
-    BACK_PKG -->|ethers.js Relayer| CONTRACTS_PKG
+    %% Third-party Integrations
+    BACK_PKG -->|Query farm compliance| TRACEX_API
+    BACK_PKG -->|Register index insurance| PULA_API
     BACK_PKG -->|Transfer USDC| KP
+    BACK_PKG -->|ethers.js Relayer| CONTRACTS_PKG
     
     %% Monitoring
     CONTRACTS_PKG -.->|Emits events| DEFENDER
@@ -114,70 +124,64 @@ graph TB
 ```
 
 ### 3.1 Monorepo Package Breakdown
-1. **`bikkofarms-ussd`:** Lightweight client managing stateless Africa's Talking session redirects and dialogue navigation. For implementation details, see [**USSD Client Architecture**](./bikkofarms-ussd/ARCHITECTURE.md).
-2. **`bikkofarms-whatsappbot`:** Client processing WhatsApp message templates, HMAC signature verification, and Meta Cloud API messages. For implementation details, see [**WhatsApp Bot Architecture**](./bikkofarms-whatsappbot/ARCHITECTURE.md).
-3. **`bikkofarms-backend`:** Central API engine. Houses database routers, background BullMQ workers, and the blockchain service.
-4. **`bikkofarms-dashboard`:** UI client for cooperative managers to inspect credit applications, track repayments, and monitor default rates.
-5. **`bikkofarms-contracts`:** Foundry-compiled smart contracts executing secure lending, collateral locking, and price feed updates. For security hierarchy and access maps, see [**Smart Contract Architecture**](./bikkofarms-contracts/ARCHITECTURE.md).
+1. **`bikkofarms-ussd`:** Stateless microservice managing USSD menu rendering and session context routing. For implementation details, see [**USSD Client Architecture**](./bikkofarms-ussd/ARCHITECTURE.md).
+2. **`bikkofarms-whatsappbot`:** Webhook client processing Meta Cloud API conversational sessions, HMAC signature checks, and dialog trees. For implementation details, see [**WhatsApp Bot Architecture**](./bikkofarms-whatsappbot/ARCHITECTURE.md).
+3. **`bikkofarms-backend`:** Main API gateway containing database models, BullMQ task workers, event indexers, and blockchain connectors.
+4. **`bikkofarms-dashboard`:** Web interface for cooperative managers to inspect loan applications, track repayments, and manage farmer databases.
+5. **`bikkofarms-contracts`:** Foundry-based smart contracts mapping harvest tokenization and private vault lending. For security mapping, see [**Smart Contract Architecture**](./bikkofarms-contracts/ARCHITECTURE.md).
 
 ---
 
 ## 4. End-to-End Loan Transaction Sequence (A–Z)
 
-Below is the chronological sequence of events, from first onboarding to repayment:
+This sequence diagram tracks onboarding, tracing, lending, and repayment:
 
 ```mermaid
 sequenceDiagram
     autonumber
     actor Farmer as "Farmer (USSD / Bot)"
+    actor Agent as "Co-op Agent (TraceX Mobile)"
     participant Client as "Client Gateway (Bot/USSD)"
     participant Backend as Express Backend
-    participant Redis as Redis Cache
+    participant TraceX as TraceX API
     participant DB as PostgreSQL DB
     participant Chain as Lisk EVM L2
-    actor Agent as "Co-op Agent (Dashboard)"
     participant Kotani as Kotani Pay API
 
-    Note over Farmer, Chain: Phase A: Onboarding & Tokenization
-    Farmer->>Client: Register name, GPS, national ID
-    Client->>Backend: POST /api/v1/farmers
-    Backend->>DB: Encrypt name & ID and insert record
-    Backend->>Chain: Mint HarvestToken (ERC-1155 NFT) to farmer wallet
-    Chain-->>Backend: Return NFT tokenId
-    Backend->>DB: Link tokenId to Farmer record
-    Backend->>Client: Send registration confirmation SMS/WhatsApp
-    Client->>Farmer: "Onboarded. ID: FARM-102"
-
-    Note over Farmer, Kotani: Phase B: Loan Application & Collateral Lock
-    Farmer->>Client: Apply for $150 USDC loan
-    Client->>Redis: Check current dialogue tree status
-    Client->>Backend: POST /api/v1/loans {amount: 15000, harvestKg: 500}
-    Backend->>Chain: Check BikkoOracle price (e.g. Cocoa = $3.20/kg)
-    Note over Backend: LTV Limit Check: 500kg * $3.20 * 70% LTV = $1120 Max. $150 is Safe.
-    Backend->>DB: Create Loan in PENDING status
-    Agent->>Backend: PUT /api/v1/loans/:id/approve (JWT Auth)
-    Backend->>Chain: BikkoLendingPool.approveLoan(loanId)
-    Note over Chain: Contract safeTransferFrom (Locks NFT Collateral in LendingPool)
-    Chain-->>Backend: Emit LoanApproved event
+    Note over Agent, TraceX: Phase A: Onboarding & Plot Mapping
+    Agent->>TraceX: Input farmer name, national ID, GPS plot polygons
+    TraceX-->>Agent: Generate TraceX Farmer Profile (Saved Offline/Online)
+    
+    Note over Farmer, Chain: Phase B: Loan Application & EVM Anchoring
+    Farmer->>Client: Dial code or text "APPLY"
+    Client->>Backend: POST /api/v1/loans {amount: 15000}
+    Backend->>TraceX: GET /api/v1/producers/{nationalId}/compliance
+    TraceX-->>Backend: Return geolocation proof & yield estimate (e.g. 500kg)
+    Backend->>Chain: Mint HarvestToken (ERC-1155) containing TraceX tracking hash
+    Chain-->>Backend: Return tokenId (42)
+    Backend->>DB: Create PENDING loan record
+    
+    Note over Backend, Chain: Phase C: Private Vault Collateral Locking
+    Backend->>Chain: BikkoLendingVault.lockCollateral(tokenId, loanId)
+    Note over Chain: Locks ERC-1155 NFT in private capital vault
+    Chain-->>Backend: Emit CollateralLocked event
     Backend->>DB: Update status to APPROVED
-
-    Note over Backend, Kotani: Phase C: USDC Exchange & Mobile Disbursement
-    Backend->>Chain: Transfer 150 USDC to Kotani Pay deposit address
-    Backend->>Kotani: POST /v1/payouts {recipient mobile phone, amount GHS}
+    
+    Note over Backend, Kotani: Phase D: USDC Disbursement
+    Backend->>Chain: Transfer 150 USDC from LendingVault to Kotani deposit address
+    Backend->>Kotani: POST /v3/withdraw/mobile-money {phone, provider, GHS}
     Backend->>DB: Update status to DISBURSING
-    Kotani->>Farmer: Disburse GHS to Mobile Money wallet
-    Kotani->>Backend: Webhook callback (payout.completed)
+    Kotani->>Farmer: Deposit GHS to MTN MoMo wallet
+    Kotani->>Backend: Callback webhook (payout.completed)
     Backend->>DB: Update status to DISBURSED
-    Backend->>Farmer: Send payout receipt notification
-
-    Note over Farmer, Chain: Phase D: Repayment & Collateral Release
-    Farmer->>Kotani: Send GHS/KES mobile money repayment
-    Kotani->>Chain: Swap fiat to USDC and transfer USDC to LendingPool
-    Backend->>Chain: BikkoLendingPool.repayLoan(loanId)
+    
+    Note over Farmer, Chain: Phase E: Repayment & Releasing Collateral
+    Farmer->>Kotani: Send mobile money repayment (installments over 6 months)
+    Kotani->>Chain: Swap fiat to USDC and transfer USDC to LendingVault
+    Backend->>Chain: BikkoLendingVault.repayLoan(loanId)
     Note over Chain: Release HarvestToken NFT back to farmer wallet
     Chain-->>Backend: Emit LoanRepaid event
     Backend->>DB: Update status to REPAID
-    Backend->>Farmer: Send "Collateral Released" confirmation message
 ```
 
 ---
@@ -185,60 +189,60 @@ sequenceDiagram
 ## 5. State Machine Diagrams
 
 ### 5.1 Off-Chain Loan Status (PostgreSQL)
-Tracks database loan records manipulated by webhooks, queues, and agent actions:
+Tracks database loan records updated by dashboard triggers and external callbacks:
 
 ```mermaid
 stateDiagram-v2
     [*] --> PENDING : Farmer applies via USSD / WhatsApp
-    PENDING --> REJECTED : Co-op Agent rejects request
+    PENDING --> REJECTED : Yield mapping mismatch or LTV exceeded
     PENDING --> APPROVED : Co-op Agent approves loan
-    APPROVED --> DISBURSING : USDC moved to Kotani Pay
+    APPROVED --> DISBURSING : USDC transferred to Kotani Pay
     DISBURSING --> DISBURSED : Webhook (payout.completed) confirms transfer
     DISBURSING --> FAILED : Kotani Pay API errors
     FAILED --> DISBURSING : Admin triggers manual retry
     DISBURSED --> REPAID : Repayment received
-    DISBURSED --> OVERDUE : Due date passes without payment
-    OVERDUE --> LIQUIDATED : Admin liquidates collateral
+    DISBURSED --> OVERDUE : Due date passes without repayment
+    OVERDUE --> LIQUIDATED : Admin liquidates crop collateral
     OVERDUE --> REPAID : Overdue repayment received
 ```
 
-### 5.2 On-Chain Escrow State (BikkoLendingPool.sol)
-Tracks Solidity contract variables and escrow asset lockups:
+### 5.2 On-Chain Escrow State (BikkoLendingVault.sol)
+Tracks Solidity smart contract states and asset lockups:
 
 ```mermaid
 stateDiagram-v2
-    [*] --> PENDING : applyLoan() called by Backend
-    PENDING --> REJECTED : rejectLoan() called by Agent
-    PENDING --> LOCKED_IN_ESCROW : approveLoan() transfers NFT to LendingPool
+    [*] --> PENDING : lockCollateral() called by Backend
+    PENDING --> LOCKED_IN_ESCROW : NFT collateral is held in the vault
     LOCKED_IN_ESCROW --> RELEASED : repayLoan() transfers NFT back to Farmer
-    LOCKED_IN_ESCROW --> LIQUIDATED : liquidate() transfers NFT to Admin Multisig
+    LOCKED_IN_ESCROW --> LIQUIDATED : liquidate() transfers NFT to Admin Gnosis Safe
 ```
 
 ---
 
 ## 6. Smart Contract Security, Governance, and Monitoring
 
-Security is enforced at the protocol layer to eliminate single points of failure:
+Security is enforced at the protocol layer to protect the private capital pool:
 
 ### 6.1 Access Control & Wallet Roles
 Access is partitioned using OpenZeppelin `AccessControl`.
 
 | Role Name | EOA/Multisig Holder | Permissions | Security Boundary |
 |---|---|---|---|
-| `DEFAULT_ADMIN_ROLE` | Gnosis Safe 2-of-3 Multisig | Pause/unpause contracts, change LTV, execute liquidations, trigger emergency returns | Cannot perform instant upgrades (timelocked) |
+| `DEFAULT_ADMIN_ROLE` | Gnosis Safe 2-of-3 Multisig | Pause/unpause contracts, modify LTV, execute liquidations, trigger emergency returns | Cannot perform instant upgrades (timelocked) |
 | `GUARDIAN_ROLE` | On-Call Engineer Wallet | Can call `pause()` immediately | Cannot unpause, cannot move funds, cannot upgrade |
-| `AGENT_ROLE` | Backend Relayer Wallet | Approve loans, reject loans, verify repayment status | Cannot mint NFTs, cannot change prices |
-| `MINTER_ROLE` | Backend Bot Wallet | Mint HarvestToken NFTs | Cannot approve loans, cannot withdraw assets |
+| `AGENT_ROLE` | Backend Relayer Wallet | Approve loans, verify repayment status | Cannot mint NFTs, cannot change prices |
+| `MINTER_ROLE` | Backend Bot Wallet | Mint HarvestToken NFTs (containing TraceX hashes) | Cannot approve loans, cannot withdraw assets |
 | `ORACLE_UPDATER_ROLE` | Backend Cron Wallet | Update cocoa/coffee prices | Cannot transfer tokens, capped at 50% max price deviation check |
 | `UPGRADER_ROLE` | TimelockController | Authorize implementation proxy upgrades | Only executable after 7-day queue delay |
 
 ### 6.2 Selective Upgradeability
 - **Immutable Contracts (`HarvestToken.sol`, `BikkoOracle.sol`):** Keeping these immutable prevents an admin key compromise from modifying NFT logic or oracle price caps.
-- **Upgradeable Proxy (`BikkoLendingPool.sol`):** Wrapped in a `TransparentUpgradeableProxy` so lending logic and fee formulas can evolve. Any upgrade proposal requires a **7-day timelock**, allowing users to exit the platform if they disagree.
+- **Upgradeable Proxy (`BikkoLendingVault.sol`):** Wrapped in a `TransparentUpgradeableProxy` so lending parameters can evolve. Any upgrade proposal requires a **7-day timelock**, allowing users to exit the platform if they disagree.
 
-### 6.3 Emergency Procedures
-- **`pause()`:** If anomalous lending patterns are detected, the Guardian wallet can pause lending pools to freeze operations.
-- **`emergencyReturn()`:** If Kotani Pay fails permanently or a farmer experiences systemic crop failure, the Gnosis Safe Admin can return the collateral NFT directly to the farmer without requiring repayment.
+### 6.3 Transition Path to Morpho Blue (Phase 2)
+In Phase 2, we will migrate from the private `BikkoLendingVault.sol` to a public decentralized model using **Morpho Blue**:
+* **Morpho Blue Market Deployment:** We will deploy a permissionless market on Morpho Blue with `HarvestToken` (ERC-1155 wrapper) as collateral and `USDC` as the borrowable asset.
+* **Adapter Integration:** We will deploy `BikkoMorphoAdapter.sol` to interface between the backend and Morpho, allowing automated borrowing/supplying on behalf of co-ops using the crop NFTs as collateral.
 
 ### 6.4 Monitoring Stack
 We use a three-pronged monitoring approach to verify contract integrity:
@@ -276,11 +280,11 @@ bikkofarms-contracts/
 ├── lib/                     # OpenZeppelin and Solmate submodules
 ├── src/                     # Core Solidity contracts
 │   ├── HarvestToken.sol
-│   ├── BikkoLendingPool.sol
+│   ├── BikkoLendingVault.sol
 │   └── BikkoOracle.sol
 ├── test/                    # Solidity tests
 │   ├── HarvestToken.t.sol
-│   ├── BikkoLendingPool.t.sol
+│   ├── BikkoLendingVault.t.sol
 │   └── BikkoOracle.t.sol
 ├── script/                  # Solidity deployment scripts
 │   └── Deploy.s.sol

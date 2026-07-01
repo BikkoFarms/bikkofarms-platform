@@ -34,7 +34,7 @@ Smallholder cocoa and coffee farmers in Ghana face severe financial exclusion:
 
 ### Tertiary Users (Liquidity Providers / Admins)
 - Institutional or decentralized Web3 investors
-- Supply capital to the lending pool
+- Supply capital to the lending vault
 - Managed via admin dashboard with analytics
 
 ---
@@ -79,7 +79,7 @@ Smallholder cocoa and coffee farmers in Ghana face severe financial exclusion:
    - React + Vite web app
    - Login page (JWT)
    - Pending loans table with farmer info, LTV, Approve/Reject buttons
-   - `PUT /api/loans/:id/approve` triggers: lock HarvestToken collateral + call `approveLoan()` on chain
+   - `PUT /api/loans/:id/approve` triggers: lock HarvestToken collateral + call `lockCollateral()` on chain
 
 5. **Loan Disbursement (Kotani Pay)**
    - On approval: transfer USDC to Kotani Pay → quote → payout to farmer mobile money
@@ -88,7 +88,7 @@ Smallholder cocoa and coffee farmers in Ghana face severe financial exclusion:
 
 6. **Repayment Tracking**
    - Farmer repays via mobile money (Kotani Pay on-ramp)
-   - `BikkoLendingPool.repayLoan()` releases HarvestToken back to farmer
+   - `BikkoLendingVault.repayLoan()` releases HarvestToken back to farmer
    - Loan status updated to `REPAID`
 
 7. **Admin Oracle Price Updates**
@@ -102,7 +102,7 @@ Smallholder cocoa and coffee farmers in Ghana face severe financial exclusion:
 
 - Chainlink or RedStone oracle integration (no cocoa/coffee feeds on Lisk yet)
 - EUDR polygon compliance (GPS point + declaration is acceptable for MVP)
-- Decentralized peer-to-peer loan bidding (MVP uses single pooled liquidity)
+- Decentralized peer-to-peer loan bidding (MVP uses private capital pool)
 - AI-assisted crop yield estimation (MVP relies on cooperative physical inspection)
 - Cross-border trading integrations
 - Native mobile app (WhatsApp + USSD + Web only)

@@ -12,7 +12,7 @@ All environment variables used across BikkoChain services. Every variable must b
 | `LISK_BACKUP_RPC_URL` | `https://rpc.api.lisk.com` | Backup RPC for failover |
 | `BACKEND_WALLET_PRIVATE_KEY` | `0x...` | **DO NOT COMMIT.** Backend relayer wallet private key. In production: set as Render Secret env var (encrypted at rest). Phase 2: migrate to Doppler or HashiCorp Vault. |
 | `HARVEST_TOKEN_ADDRESS` | `0x...` | Deployed `HarvestToken.sol` contract address |
-| `LENDING_POOL_ADDRESS` | `0x...` | Deployed `BikkoLendingPool.sol` proxy address |
+| `LENDING_VAULT_ADDRESS` | `0x...` | Deployed `BikkoLendingVault.sol` proxy address |
 | `ORACLE_ADDRESS` | `0x...` | Deployed `BikkoOracle.sol` address |
 | `USDC_ADDRESS` | `0x18eb25a15ec48db3c42a0f41ec0a716ba6b54514` | Circle USDC on Lisk Mainnet. Use testnet USDC address on Sepolia. |
 
@@ -102,7 +102,7 @@ LISK_RPC_URL=https://rpc.sepolia-api.lisk.com
 LISK_BACKUP_RPC_URL=https://rpc.api.lisk.com
 BACKEND_WALLET_PRIVATE_KEY=0x_YOUR_TESTNET_PRIVATE_KEY_HERE
 HARVEST_TOKEN_ADDRESS=0x_AFTER_DEPLOY
-LENDING_POOL_ADDRESS=0x_AFTER_DEPLOY
+LENDING_VAULT_ADDRESS=0x_AFTER_DEPLOY
 ORACLE_ADDRESS=0x_AFTER_DEPLOY
 USDC_ADDRESS=0x_SEPOLIA_USDC_ADDRESS
 

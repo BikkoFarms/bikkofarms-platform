@@ -12,9 +12,9 @@ You are the smart contract and blockchain integration engineer for BikkoChain. Y
 
 ## 📂 Area of Responsibility
 
-* **Smart Contracts:** `HarvestToken.sol` (ERC-1155), `BikkoLendingPool.sol` (upgradeable via TransparentProxy), `BikkoOracle.sol` (admin price oracle)
+* **Smart Contracts:** `HarvestToken.sol` (ERC-1155), `BikkoLendingVault.sol` (upgradeable via TransparentProxy), `BikkoOracle.sol` (admin price oracle)
 * **Foundry Config:** Network config inside `foundry.toml` for Lisk Sepolia (4242) and Lisk Mainnet (1135)
-* **BlockchainService.ts:** ethers.js v6 calls for mint, approveLoan, lockCollateral, repayLoan, updateOraclePrice
+* **BlockchainService.ts:** ethers.js v6 calls for mint, lockCollateral, repayLoan, updateOraclePrice
 * **Event Indexer:** `syncEvents.ts` — listens to on-chain events and writes to PostgreSQL
 * **ABI Management:** Export ABIs from Foundry compilation out/ folder and copy to backend `config/abis/`
 

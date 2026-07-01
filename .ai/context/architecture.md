@@ -35,7 +35,7 @@ graph TB
 
     subgraph CHAIN["Lisk Blockchain EVM - chainId 1135"]
         HT[HarvestToken.sol - ERC-1155]
-        LP[BikkoLendingPool.sol - Proxy]
+        LV[BikkoLendingVault.sol - Proxy]
         ORC[BikkoOracle.sol - Price Oracle]
     end
 
@@ -178,15 +178,15 @@ EPCIS metadata stored on IPFS includes: `farmerId`, `gpsCoordinates`, `cropType`
 
 **Smart Contracts:**
 - `HarvestToken.sol` — ERC-1155 with `MINTER_ROLE` (backend relayer wallet)
-- `BikkoLendingPool.sol` — manages loan lifecycle: `registerFarmer()`, `applyLoan()`, `approveLoan()`, `repayLoan()`, `liquidate()`
+- `BikkoLendingVault.sol` — manages private lending vault: `registerFarmer()`, `lockCollateral()`, `repayLoan()`, `liquidate()`
 - `BikkoOracle.sol` — MVP admin-controlled price oracle with `updatePrice(uint256 cocoaUsdPerKg)` and `updateCoffeePrice(uint256 coffeeUsdPerKg)`
-- `TransparentUpgradeableProxy` — wraps `BikkoLendingPool.sol` with 7-day timelock admin
+- `TransparentUpgradeableProxy` — wraps `BikkoLendingVault.sol` with 7-day timelock admin
 
 **LTV Calculation:** `harvestKg × pricePerKg × 0.70 = maxLoan`. E.g. 500kg × $3.20 × 70% = $1,120 max.
 
 **Contract Events (indexed to PostgreSQL by event listener process):**
-- `LoanCreated(loanId, farmer, amount)`
-- `LoanApproved(loanId)`
+- `FarmerRegistered(farmer, village)`
+- `CollateralLocked(loanId, agent)`
 - `LoanRepaid(loanId, amount)`
 - `CollateralLiquidated(loanId, tokenId)`
 - `HarvestTokenized(tokenId, farmer, amount, epcisUri)`
@@ -271,7 +271,7 @@ bikkofarms-platform/
 ├── bikkofarms-contracts/    # Foundry / Solidity / OpenZeppelin
 │   ├── src/
 │   │   ├── HarvestToken.sol       # ERC-1155
-│   │   ├── BikkoLendingPool.sol   # Core lending logic
+│   │   ├── BikkoLendingVault.sol  # Private vault logic
 │   │   └── BikkoOracle.sol        # Admin price oracle (MVP)
 │   ├── test/                # *.t.sol tests in Solidity
 │   ├── script/              # Deploy.s.sol deployment script

@@ -30,13 +30,13 @@ To enforce comprehensive testing standards that guarantee functional stability, 
 
 * **Descriptive Test Blocks:** Use descriptive test function names in Solidity following the `test[State]_[Behavior]` convention.
   ```solidity
-  contract BikkoLendingPoolTest is Test {
-      function testApproveLoan_LocksCollateral() public {
+  contract BikkoLendingVaultTest is Test {
+      function testLockCollateral_LocksCollateral() public {
           // Arrange
           // Act
           // Assert
       }
-      function testApproveLoan_RevertsIfNotAgent() public {
+      function testLockCollateral_RevertsIfNotAgent() public {
           // Expect revert...
       }
   }

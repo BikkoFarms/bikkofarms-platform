@@ -17,7 +17,7 @@ graph TD
 
     subgraph CORE["Core Contracts"]
         PROXY[TransparentUpgradeableProxy]
-        POOL[BikkoLendingPool - Implementation]
+        VAULT[BikkoLendingVault - Private Vault]
         ORACLE[BikkoOracle - Immutable]
         TOKEN[HarvestToken ERC-1155 - Immutable]
     end
@@ -37,15 +37,15 @@ graph TD
 
     MS -->|queue upgrade| TL
     TL -->|execute after 7 days| PROXY
-    PROXY -->|delegates all calls| POOL
-    POOL --> ORACLE
-    POOL --> TOKEN
-    POOL --> USDC
+    PROXY -->|delegates all calls| VAULT
+    VAULT --> ORACLE
+    VAULT --> TOKEN
+    VAULT --> USDC
     TOKEN -.->|inherits| OZ_AC
-    POOL -.->|inherits| OZ_RG
-    POOL -.->|inherits| OZ_PA
-    POOL -.->|inherits| OZ_SE
-    POOL -.->|inherits| OZ_UP
+    VAULT -.->|inherits| OZ_RG
+    VAULT -.->|inherits| OZ_PA
+    VAULT -.->|inherits| OZ_SE
+    VAULT -.->|inherits| OZ_UP
 ```
 
 ---
@@ -151,14 +151,14 @@ stateDiagram-v2
     LIQUIDATED --> [*]
 ```
 
-**On-chain state transitions (BikkoLendingPool.sol):**
+**On-chain state transitions (BikkoLendingVault.sol):**
 
 | Transition | Who | On-Chain Action |
 |---|---|---|
-| `PENDING → APPROVED` | `AGENT_ROLE` wallet | `HarvestToken.safeTransferFrom(farmer → pool)` + emit `LoanApproved` |
+| `PENDING → APPROVED` | `AGENT_ROLE` wallet | `HarvestToken.safeTransferFrom(farmer → vault)` + emit `CollateralLocked` |
 | `APPROVED → DISBURSED` | Backend (off-chain Kotani webhook) | DB-only update; USDC already moved by backend before Kotani call |
-| `DISBURSED → REPAID` | Backend after Kotani on-ramp + farmer repay | `repayLoan(id)` → `HarvestToken.safeTransferFrom(pool → farmer)` |
-| `OVERDUE → LIQUIDATED` | `ADMIN_ROLE` Gnosis Safe | `liquidate(id)` → `HarvestToken.safeTransferFrom(pool → adminSafe)` |
+| `DISBURSED → REPAID` | Backend after Kotani on-ramp + farmer repay | `repayLoan(id)` → `HarvestToken.safeTransferFrom(vault → farmer)` |
+| `OVERDUE → LIQUIDATED` | `ADMIN_ROLE` Gnosis Safe | `liquidate(id)` → `HarvestToken.safeTransferFrom(vault → adminSafe)` |
 
 ---
 
@@ -194,7 +194,7 @@ contract HarvestToken is ERC1155, AccessControl, Pausable {
         uint256 amountKg,
         string  ipfsUri
     );
-    event CollateralLocked(uint256 indexed tokenId, address indexed lendingPool);
+    event CollateralLocked(uint256 indexed tokenId, address indexed lendingVault);
     event CollateralReleased(uint256 indexed tokenId, address indexed farmer);
 
     constructor(address adminSafe) ERC1155("") {
@@ -331,9 +331,9 @@ contract BikkoOracle is AccessControl {
 }
 ```
 
-### 5.3 BikkoLendingPool.sol (UPGRADEABLE — TransparentProxy + Timelock)
+### 5.3 BikkoLendingVault.sol (UPGRADEABLE — TransparentProxy + Timelock)
 
-**Why upgradeable?** Business rules (LTV ratio, interest rates, loan duration) will evolve. The 7-day timelock ensures users can exit if they disagree with an upgrade.
+**Why upgradeable?** Business rules (LTV ratio, loan duration) will evolve. The 7-day timelock ensures users can exit if they disagree with an upgrade.
 
 **Core security pattern — Checks-Effects-Interactions on every fund-moving function.**
 
@@ -351,7 +351,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./HarvestToken.sol";
 import "./BikkoOracle.sol";
 
-contract BikkoLendingPool is
+contract BikkoLendingVault is
     Initializable,
     AccessControlUpgradeable,
     ReentrancyGuardUpgradeable,
@@ -390,8 +390,7 @@ contract BikkoLendingPool is
 
     // ─── Events ──────────────────────────────────────────────────────────────
     event FarmerRegistered(address indexed farmer, string village);
-    event LoanCreated(bytes32 indexed loanId, address indexed farmer, uint256 amountUsdcCents, uint256 tokenId);
-    event LoanApproved(bytes32 indexed loanId, address indexed agent);
+    event CollateralLocked(bytes32 indexed loanId, address indexed agent);
     event LoanRepaid(bytes32 indexed loanId, uint256 amountUsdcCents);
     event LoanRejected(bytes32 indexed loanId, string reason);
     event CollateralLiquidated(bytes32 indexed loanId, uint256 tokenId, address indexed to);
@@ -433,34 +432,34 @@ contract BikkoLendingPool is
 
     // ─── Farmer Registration ─────────────────────────────────────────────────
     function registerFarmer(address farmer, string calldata village) external whenNotPaused {
-        require(!farmers[farmer], "Pool: already registered");
+        require(!farmers[farmer], "Vault: already registered");
         farmers[farmer] = true;
         emit FarmerRegistered(farmer, village);
     }
 
-    // ─── Loan Application ────────────────────────────────────────────────────
-    /// @notice Submit a loan application. Farmer must already hold the harvest token.
-    function applyLoan(
+    // ─── Collateral Locking ──────────────────────────────────────────────────
+    /// @notice Agent locks a farmer's harvest NFT as collateral for an approved loan.
+    function lockCollateral(
         bytes32 loanId,
         address farmer,
-        uint256 amountUsdcCents,
         uint256 collateralTokenId,
+        uint256 amountUsdcCents,
         uint256 harvestKg,
         string calldata cropType
-    ) external whenNotPaused {
+    ) external onlyRole(AGENT_ROLE) whenNotPaused nonReentrant {
         // ── Checks ──
-        require(farmers[farmer], "Pool: farmer not registered");
-        require(loans[loanId].farmer == address(0), "Pool: loan ID already exists");
-        require(amountUsdcCents > 0 && amountUsdcCents <= maxLoanUsdc, "Pool: amount out of bounds");
-        require(!oracle.isStale(), "Pool: oracle price is stale");
-        require(harvestToken.balanceOf(farmer, collateralTokenId) == 1, "Pool: farmer does not own token");
+        require(farmers[farmer], "Vault: farmer not registered");
+        require(loans[loanId].farmer == address(0), "Vault: loan ID already exists");
+        require(amountUsdcCents > 0 && amountUsdcCents <= maxLoanUsdc, "Vault: amount out of bounds");
+        require(!oracle.isStale(), "Vault: oracle price is stale");
+        require(harvestToken.balanceOf(farmer, collateralTokenId) == 1, "Vault: farmer does not own token");
 
         // LTV check
         uint256 pricePerKg = keccak256(bytes(cropType)) == keccak256("cocoa")
             ? oracle.getCocoaPrice()
             : oracle.getCoffeePrice();
         uint256 maxLoan = (harvestKg * pricePerKg * ltvBps) / 10_000;
-        require(amountUsdcCents <= maxLoan, "Pool: exceeds LTV limit");
+        require(amountUsdcCents <= maxLoan, "Vault: exceeds LTV limit");
 
         // ── Effects ──
         loans[loanId] = Loan({
@@ -468,43 +467,24 @@ contract BikkoLendingPool is
             amountUsdcCents: amountUsdcCents,
             collateralTokenId: collateralTokenId,
             appliedAt: block.timestamp,
-            dueDate: 0,
-            status: LoanStatus.PENDING
+            dueDate: block.timestamp + loanDuration,
+            status: LoanStatus.APPROVED
         });
 
-        emit LoanCreated(loanId, farmer, amountUsdcCents, collateralTokenId);
-        // ── Interactions (none needed here) ──
-    }
-
-    // ─── Loan Approval ───────────────────────────────────────────────────────
-    /// @notice Agent approves loan. Locks collateral in pool.
-    /// @dev nonReentrant protects against reentrancy via ERC-1155 receiver hook.
-    function approveLoan(bytes32 loanId) external onlyRole(AGENT_ROLE) whenNotPaused nonReentrant {
-        // ── Checks ──
-        Loan storage loan = loans[loanId];
-        require(loan.farmer != address(0), "Pool: loan not found");
-        require(loan.status == LoanStatus.PENDING, "Pool: not pending");
-        require(!oracle.isStale(), "Pool: oracle price is stale");
-
-        // ── Effects ──
-        loan.status  = LoanStatus.APPROVED;
-        loan.dueDate = block.timestamp + loanDuration;
-
         // ── Interactions ──
-        harvestToken.safeTransferFrom(loan.farmer, address(this), loan.collateralTokenId, 1, "");
-        harvestToken.markLocked(loan.collateralTokenId);
+        harvestToken.safeTransferFrom(farmer, address(this), collateralTokenId, 1, "");
+        harvestToken.markLocked(collateralTokenId);
 
-        emit LoanApproved(loanId, msg.sender);
+        emit CollateralLocked(loanId, msg.sender);
     }
 
     // ─── Loan Rejection ──────────────────────────────────────────────────────
     function rejectLoan(bytes32 loanId, string calldata reason) external onlyRole(AGENT_ROLE) {
         Loan storage loan = loans[loanId];
-        require(loan.status == LoanStatus.PENDING, "Pool: not pending");
+        require(loan.status == LoanStatus.PENDING, "Vault: not pending");
         // ── Effects ──
         loan.status = LoanStatus.REJECTED;
         emit LoanRejected(loanId, reason);
-        // ── Interactions (none — no collateral moved) ──
     }
 
     // ─── Repayment ───────────────────────────────────────────────────────────
@@ -513,7 +493,7 @@ contract BikkoLendingPool is
         // ── Checks ──
         Loan storage loan = loans[loanId];
         require(loan.status == LoanStatus.APPROVED || loan.status == LoanStatus.DISBURSED,
-                "Pool: loan not active");
+                "Vault: loan not active");
 
         // ── Effects ──
         loan.status = LoanStatus.REPAID;
@@ -531,9 +511,9 @@ contract BikkoLendingPool is
     function liquidate(bytes32 loanId, address recipient) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
         // ── Checks ──
         Loan storage loan = loans[loanId];
-        require(loan.status == LoanStatus.DISBURSED, "Pool: loan not disbursed");
-        require(block.timestamp > loan.dueDate, "Pool: loan not yet overdue");
-        require(recipient != address(0), "Pool: invalid recipient");
+        require(loan.status == LoanStatus.DISBURSED || loan.status == LoanStatus.APPROVED, "Vault: loan not active");
+        require(block.timestamp > loan.dueDate, "Vault: loan not yet overdue");
+        require(recipient != address(0), "Vault: invalid recipient");
 
         // ── Effects ──
         loan.status = LoanStatus.LIQUIDATED;
@@ -552,10 +532,10 @@ contract BikkoLendingPool is
     ///         Requires Gnosis Safe 2-of-3 approval — protects against misuse.
     function emergencyReturn(bytes32 loanId) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
         Loan storage loan = loans[loanId];
-        require(loan.farmer != address(0), "Pool: loan not found");
+        require(loan.farmer != address(0), "Vault: loan not found");
         require(
             loan.status == LoanStatus.APPROVED || loan.status == LoanStatus.DISBURSED,
-            "Pool: token not held by pool"
+            "Vault: token not held by vault"
         );
 
         // ── Effects ──
@@ -571,7 +551,7 @@ contract BikkoLendingPool is
 
     // ─── Admin Configuration ─────────────────────────────────────────────────
     function setLtv(uint256 newBps) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(newBps > 0 && newBps <= 8000, "Pool: LTV must be 1-80%");
+        require(newBps > 0 && newBps <= 8000, "Vault: LTV must be 1-80%");
         emit LtvUpdated(ltvBps, newBps);
         ltvBps = newBps;
     }
@@ -644,7 +624,7 @@ sequenceDiagram
 | Scenario | Who Acts | Action |
 |---|---|---|
 | **Oracle cron key compromised** | On-call engineer | Call `emergencyReturn` to release all farmer collateral. Revoke `ORACLE_UPDATER_ROLE`. Deploy new cron wallet. |
-| **Suspicious loan approval spike** | Guardian EOA | Call `pause()` on LendingPool immediately. Investigate. Gnosis Safe calls `unpause()` after review. |
+| **Suspicious loan approval spike** | Guardian EOA | Call `pause()` on LendingVault immediately. Investigate. Gnosis Safe calls `unpause()` after review. |
 | **Farmer cannot repay due to crop failure** | Gnosis Safe | Call `emergencyReturn(loanId)` — returns NFT to farmer with no penalty (humanitarian protocol). |
 | **Kotani Pay payout permanently fails** | Gnosis Safe | Call `emergencyReturn(loanId)` — returns collateral. Backend initiates manual bank transfer/cash payout via agent. |
 | **HarvestToken.sol exploit discovered** | Gnosis Safe | Call `pause()` on HarvestToken. Token transfers halt. Investigate. HarvestToken is immutable — if exploit is in contract code, migrate to v2 token address via new deployment. |
@@ -659,22 +639,22 @@ sequenceDiagram
 
 | Attack Vector | Risk | Mitigation in Contract |
 |---|---|---|
-| **Reentrancy on approveLoan** | Attacker calls `approveLoan` while in ERC-1155 `onReceived` hook | `nonReentrant` modifier + CEI pattern |
+| **Reentrancy on lockCollateral** | Attacker calls `lockCollateral` while in ERC-1155 `onReceived` hook | `nonReentrant` modifier + CEI pattern |
 | **Price oracle manipulation** | Compromised cron wallet sets cocoa price to $1000/kg, enabling massive loans | 50% max price change per update (`MAX_PRICE_CHANGE_BPS`); 48h staleness guard halts new loans |
-| **Front-running loan applications** | MEV bot observes pending `applyLoan` and submits conflicting loan | loanId is generated off-chain as UUID — no predictable ordering |
+| **Front-running loan actions** | MEV bot observes pending `lockCollateral` and submits conflicting transaction | loanId is generated off-chain as UUID — no predictable ordering |
 | **Collateral double-spend** | Farmer uses same token as collateral in two loans | `isLockedAsCollateral[tokenId]` blocks any transfer while locked |
-| **Upgrade to malicious impl** | Compromised admin key upgrades pool to drain funds | 7-day Timelock + 2-of-3 Gnosis Safe — attacker needs 2 keys AND 7 days |
+| **Upgrade to malicious impl** | Compromised admin key upgrades vault to drain funds | 7-day Timelock + 2-of-3 Gnosis Safe — attacker needs 2 keys AND 7 days |
 | **tx.origin phishing** | Malicious contract calls through farmer's wallet | All auth uses `msg.sender`, never `tx.origin` |
 | **Integer overflow/underflow** | Price * kg calculation overflows | Solidity 0.8.x built-in overflow checks; use `uint256` throughout |
 | **Token receiver hook abuse** | ERC-1155 `safeTransferFrom` calls arbitrary `onERC1155Received` | `nonReentrant` on all transfer-involved functions |
-| **Stale oracle loans** | Oracle price is 5 days old; farmer gets loan against inflated price | `require(!oracle.isStale())` on both `applyLoan` and `approveLoan` |
-| **USDC blacklisting** | Circle blacklists pool address | `SafeERC20.safeTransfer` reverts cleanly; admin `emergencyReturn` releases NFT collateral |
+| **Stale oracle loans** | Oracle price is 5 days old; farmer gets loan against inflated price | `require(!oracle.isStale())` on `lockCollateral` |
+| **USDC blacklisting** | Circle blacklists vault address | `SafeERC20.safeTransfer` reverts cleanly; admin `emergencyReturn` releases NFT collateral |
 
 ### What Is Immutable (Cannot Be Changed by Anyone)
 
 - `HarvestToken.sol` — Entire contract is non-upgradeable. Token mechanics are fixed forever.
 - `BikkoOracle.sol` — Immutable. Price bounds check (`MAX_PRICE_CHANGE_BPS`) is hardcoded.
-- `BikkoLendingPool.sol` **access control logic** — Role assignments require Gnosis Safe. The `_authorizeUpgrade` guard is in the base contract, not overrideable without a new upgrade.
+- `BikkoLendingVault.sol` **access control logic** — Role assignments require Gnosis Safe. The `_authorizeUpgrade` guard is in the base contract, not overrideable without a new upgrade.
 
 ### What the Admin CAN Do (and Why It's Safe)
 
@@ -683,7 +663,7 @@ sequenceDiagram
 | Pause/unpause lending | Guardian (single key) can only pause. Unpause requires Gnosis Safe 2-of-3. |
 | Return collateral to farmer | `emergencyReturn` emits public event. Requires 2-of-3 Gnosis Safe. Cannot take farmer funds — can only return them. |
 | Liquidate overdue loans | Only callable after `dueDate` passes on-chain — not arbitrary. Requires 2-of-3. |
-| Upgrade pool logic | 7-day Timelock + 2-of-3 Gnosis Safe. Publicly visible delay. |
+| Upgrade vault logic | 7-day Timelock + 2-of-3 Gnosis Safe. Publicly visible delay. |
 | Change LTV ratio | Capped at 1-80% in contract. Cannot set to 0 or 100%. Requires 2-of-3. |
 | Grant/revoke roles | Only `DEFAULT_ADMIN_ROLE` (Gnosis Safe) can assign roles. |
 
@@ -712,14 +692,14 @@ graph TD
 ```typescript
 // scripts/verify-deployment.ts
 async function verifyDeployment() {
-  const pool = await ethers.getContractAt("BikkoLendingPool", POOL_ADDRESS);
+  const vault = await ethers.getContractAt("BikkoLendingVault", VAULT_ADDRESS);
 
   // Verify admin is Gnosis Safe (NOT a single EOA)
-  const adminIsMultisig = await pool.hasRole(DEFAULT_ADMIN_ROLE, GNOSIS_SAFE_ADDRESS);
+  const adminIsMultisig = await vault.hasRole(DEFAULT_ADMIN_ROLE, GNOSIS_SAFE_ADDRESS);
   assert(adminIsMultisig, "CRITICAL: ADMIN_ROLE must be Gnosis Safe");
 
   // Verify upgrader is Timelock (NOT Gnosis Safe directly)
-  const upgraderIsTimelock = await pool.hasRole(UPGRADER_ROLE, TIMELOCK_ADDRESS);
+  const upgraderIsTimelock = await vault.hasRole(UPGRADER_ROLE, TIMELOCK_ADDRESS);
   assert(upgraderIsTimelock, "CRITICAL: UPGRADER_ROLE must be Timelock only");
 
   // Verify oracle is not stale
@@ -740,7 +720,7 @@ async function verifyDeployment() {
 ### Option A: All contracts immutable (no proxy)
 - **Pro:** Maximum immutability trust
 - **Con:** Any business logic bug requires farmer migration to new contract. Catastrophic UX.
-- **Rejected:** LendingPool business rules WILL change (LTV, durations, new crops). Must be upgradeable.
+- **Rejected:** LendingVault business rules WILL change (LTV, durations, new crops). Must be upgradeable.
 
 ### Option B: All contracts upgradeable (full proxy pattern)
 - **Pro:** Maximum flexibility
@@ -750,5 +730,5 @@ async function verifyDeployment() {
 ### Option C (Selected): Selective upgradeability
 - `HarvestToken` — **Immutable.** Token mechanics are forever. Trust maximized.
 - `BikkoOracle` — **Immutable.** Price bounds are forever. Cannot be upgraded to manipulate LTV.
-- `BikkoLendingPool` — **Upgradeable via Proxy + 7-day Timelock.** Business rules can evolve safely.
+- `BikkoLendingVault` — **Upgradeable via Proxy + 7-day Timelock.** Business rules can evolve safely.
 - **Result:** Attack surface of upgradeability is contained to only where it's needed.

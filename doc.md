@@ -46,8 +46,8 @@ graph TB
     end
 
     subgraph CHAIN["Lisk Blockchain Layer (EVM)"]
-        HT["HarvestToken.sol\nERC-1155\n(EPCIS metadata)"]
-        LP["BikkoLendingPool.sol\n(lock/unlock collateral\nloan lifecycle)"]
+        HT["HarvestToken.sol\nERC-1155\n(TraceX hashes)"]
+        LV["BikkoLendingVault.sol\n(lock/unlock collateral\nprivate lending pool)"]
         ORC["Chainlink Price Feed\ncocoa/coffee USD/kg\n(fallback: RedStone)"]
     end
 
@@ -74,9 +74,9 @@ graph TB
     Q --> KP
     TOKEN --> IPFS
     TOKEN --> HT
-    LOAN --> LP
-    LP --> ORC
-    LP --> USDC
+    LOAN --> LV
+    LV --> ORC
+    LV --> USDC
     KP --> MM
     API --> REDIS
 ```
@@ -364,21 +364,20 @@ liskMainnet = "https://rpc.api.lisk.com"
 ```mermaid
 graph LR
     subgraph CONTRACTS["Smart Contracts (Lisk EVM)"]
-        HT["HarvestToken.sol\nERC-1155\nEPCIS metadata\nMINTER_ROLE"]
-        LP["BikkoLendingPool.sol\n- registerFarmer()\n- applyLoan()\n- approveLoan()\n- repayLoan()\n- liquidate()"]
+        HT["HarvestToken.sol\nERC-1155\nTraceX hashes\nMINTER_ROLE"]
+        LV["BikkoLendingVault.sol\n- registerFarmer()\n- lockCollateral()\n- repayLoan()\n- liquidate()"]
         PO["BikkoOracle.sol\n(MVP: admin-controlled)\nupdatePrice()\ngetCocoaPrice()\ngetCoffeePrice()"]
         PROXY["TransparentUpgradeableProxy\n(OpenZeppelin)\n7-day timelock admin"]
     end
 
     BACKEND["Backend\n(BlockchainService.ts)"] -->|mint()| HT
-    BACKEND -->|applyLoan()| LP
-    BACKEND -->|approveLoan()| LP
-    AGENT["Agent Dashboard"] -->|approveLoan() via backend| LP
-    LP -->|getCocoaPrice()| PO
-    LP -->|transferFrom farmer → pool| HT
-    LP -->|transfer pool → farmer| HT
+    BACKEND -->|lockCollateral()| LV
+    AGENT["Agent Dashboard"] -->|approve & lock via backend| LV
+    LV -->|getCocoaPrice()| PO
+    LV -->|lock NFT collateral| HT
+    LV -->|release NFT collateral| HT
     BACKEND -->|updatePrice() daily| PO
-    PROXY -.->|proxies calls| LP
+    PROXY -.->|proxies calls| LV
 ```
 
 **Contract events to index (for dashboard):**
@@ -445,15 +444,15 @@ Kotani Pay provides a REST API to off-ramp USDC (on Lisk and other EVM chains) t
 sequenceDiagram
     participant AGENT as Co-op Agent
     participant API as BikkoChain API
-    participant LP as LendingPool.sol
+    participant LV as LendingVault.sol
     participant USDC as USDC Contract (Lisk)
     participant KP as Kotani Pay API
     participant MM as MTN MoMo / M-Pesa
 
     AGENT->>API: PUT /loans/:id/approve
-    API->>LP: approveLoan(loanId) [ethers.js]
-    LP->>LP: emit LoanApproved(loanId)
-    LP-->>API: tx confirmed
+    API->>LV: lockCollateral(loanId) [ethers.js]
+    LV->>LV: emit CollateralLocked(loanId)
+    LV-->>API: tx confirmed
 
     API->>USDC: transfer(kotaniDepositAddress, amount) [ethers.js]
     USDC-->>API: tx confirmed
@@ -618,9 +617,9 @@ sequenceDiagram
     rect rgb(255, 220, 220)
         Note over F,MM: Phase 4 — Agent Approval
         AGENT->>API: PUT /loans/0043/approve (JWT authenticated)
-        API->>CHAIN: HarvestToken.safeTransferFrom(farmer, lendingPool, tokenId, 1, "")
+        API->>CHAIN: HarvestToken.safeTransferFrom(farmer, lendingVault, tokenId, 1, "")
         CHAIN-->>API: Collateral locked ✓
-        API->>CHAIN: BikkoLendingPool.approveLoan(0043)
+        API->>CHAIN: BikkoLendingVault.lockCollateral(0043)
         CHAIN-->>API: LoanApproved event ✓
         API->>DB: UPDATE loan {status: APPROVED}
     end
@@ -642,8 +641,8 @@ sequenceDiagram
         Note over F,MM: Phase 6 — Repayment
         F->>MM: Sends repayment via mobile money
         MM->>KP: On-ramp fiat → USDC
-        KP->>CHAIN: USDC.transfer(lendingPool, repayAmount)
-        API->>CHAIN: BikkoLendingPool.repayLoan(0043)
+        KP->>CHAIN: USDC.transfer(lendingVault, repayAmount)
+        API->>CHAIN: BikkoLendingVault.repayLoan(0043)
         CHAIN->>CHAIN: Release HarvestToken back to farmer
         CHAIN-->>API: LoanRepaid event
         API->>DB: UPDATE loan {status: REPAID}
@@ -783,7 +782,7 @@ Given the 2-week immediate deadline, here is what must be built first, in order:
 ### Week 1 — Foundation (no blockchain needed yet)
 
 **Day 1–2: Environment setup**
-- [ ] Initialize monorepo: `bikkochain-backend/`, `bikkochain-contracts/`, `bikkochain-dashboard/`
+- [ ] Initialize monorepo: `bikkofarms-backend/`, `bikkofarms-contracts/`, `bikkofarms-dashboard/`, `bikkofarms-ussd/`, `bikkofarms-whatsappbot/`
 - [ ] Docker Compose: PostgreSQL + Redis running locally
 - [ ] Prisma schema defined and migrated
 - [ ] Express server + TypeScript compiling
@@ -792,7 +791,7 @@ Given the 2-week immediate deadline, here is what must be built first, in order:
 **Day 3–4: Smart contract skeleton**
 - [ ] Foundry project configured for Lisk Sepolia
 - [ ] `HarvestToken.sol` (ERC-1155) deployed to Lisk Sepolia testnet
-- [ ] `BikkoLendingPool.sol` skeleton deployed
+- [ ] `BikkoLendingVault.sol` skeleton deployed
 - [ ] `BikkoOracle.sol` (admin price oracle) deployed
 - [ ] Write unit tests in Solidity with Forge (forge test)
 
@@ -841,7 +840,7 @@ Given the 2-week immediate deadline, here is what must be built first, in order:
 | **WhatsApp Business Account approval** | Meta requires Business Verification (business documents) for production access. Sandbox is instant. | Use sandbox (test numbers) for MVP. Submit business verification paperwork immediately |
 | **EUDR polygon compliance** | GPS point is not sufficient for full EUDR compliance (needs polygon + satellite verification) | For MVP, GPS point + declaration is acceptable. Flag in docs as "Phase 2 enhancement" |
 | **Smart contract audit timeline** | Good audit firms (Quantstamp, Hacken) book 4–6 weeks in advance | Book audit slot now, even before contracts are finished. Use Slither/Mythril for interim security |
-| **Winter Protocol / Palmyra adaptation** | Winter Protocol is built for Cardano's eUTXO. Adapting to Lisk EVM is non-trivial | We are NOT porting Winter Protocol. We are re-implementing its data schema in Solidity. The EPCIS metadata is JSON stored on IPFS. This is much simpler and the right call |
+| **TraceX SDK integration** | TraceX SDK provides compliance mapping, but our Lisk EVM anchoring needs custom implementation | We pull track-and-trace hashes from TraceX REST APIs and anchor them on Lisk L2 using our ERC-1155 HarvestToken contract. |
 
 ---
 

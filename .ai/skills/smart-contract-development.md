@@ -7,7 +7,7 @@ Development guidelines, patterns, and deployment safety measures for Solidity sm
 ## 🎯 Purpose
 Define engineering standards for the three core smart contracts of BikkoChain:
 - `HarvestToken.sol` — ERC-1155 collateral token (EPCIS metadata, MINTER_ROLE)
-- `BikkoLendingPool.sol` — Full loan lifecycle (wrapped in TransparentUpgradeableProxy)
+- `BikkoLendingVault.sol` — Full loan lifecycle (wrapped in TransparentUpgradeableProxy)
 - `BikkoOracle.sol` — Admin-controlled price oracle (MVP; Chainlink in Phase 2)
 
 ---
@@ -15,9 +15,9 @@ Define engineering standards for the three core smart contracts of BikkoChain:
 ## 💡 Best Practices
 
 * **Use OpenZeppelin Contracts v5:** Inherit battle-tested contracts — `ERC1155`, `AccessControl`, `SafeERC20`, `Pausable`, `ReentrancyGuard`, `TransparentUpgradeableProxy`.
-* **Upgrade Pattern — TransparentUpgradeableProxy only for BikkoLendingPool:** `HarvestToken.sol` and `BikkoOracle.sol` are NOT upgradeable. Only `BikkoLendingPool.sol` uses the proxy. 7-day timelock on the proxy admin for mainnet.
-* **Events for State Tracking:** Emit events on ALL state changes: `LoanCreated`, `LoanApproved`, `LoanRepaid`, `CollateralLiquidated`, `HarvestTokenized`, `PriceUpdated`. These are indexed to PostgreSQL by `syncEvents.ts`.
-* **Admin Oracle for MVP:** `BikkoOracle.sol` uses `updateCocoaPrice(uint256 usdCentsPerKg)` called by `ORACLE_UPDATER_ROLE`. Store prices as USD cents to avoid floating point (e.g. `320` = $3.20/kg). Add 48h staleness guard in `BikkoLendingPool.sol`.
+* **Upgrade Pattern — TransparentUpgradeableProxy only for BikkoLendingVault:** `HarvestToken.sol` and `BikkoOracle.sol` are NOT upgradeable. Only `BikkoLendingVault.sol` uses the proxy. 7-day timelock on the proxy admin for mainnet.
+* **Events for State Tracking:** Emit events on ALL state changes: `FarmerRegistered`, `CollateralLocked`, `LoanRepaid`, `CollateralLiquidated`, `HarvestTokenized`, `PriceUpdated`. These are indexed to PostgreSQL by `syncEvents.ts`.
+* **Admin Oracle for MVP:** `BikkoOracle.sol` uses `updateCocoaPrice(uint256 usdCentsPerKg)` called by `ORACLE_UPDATER_ROLE`. Store prices as USD cents to avoid floating point (e.g. `320` = $3.20/kg). Add 48h staleness guard in `BikkoLendingVault.sol`.
 * **Toolchain:** Foundry (forge) as the primary toolchain for compilation, tests, deployment scripting, and fuzzing.
 
 ---

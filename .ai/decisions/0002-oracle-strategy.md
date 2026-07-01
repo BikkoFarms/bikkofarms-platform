@@ -8,7 +8,7 @@
 
 ## Context
 
-BikkoChain needs current USD/kg prices for cocoa and coffee to calculate loan-to-value ratios (LTV). The smart contract (`BikkoLendingPool.sol`) calls an oracle contract to get these prices at loan application and approval time.
+BikkoChain needs current USD/kg prices for cocoa and coffee to calculate loan-to-value ratios (LTV). The smart contract (`BikkoLendingVault.sol`) calls an oracle contract to get these prices at loan application and approval time.
 
 Three options were evaluated for the MVP.
 
@@ -66,7 +66,7 @@ Prices are stored as USD cents per kg (e.g., `320` = $3.20/kg) to avoid floating
 
 ## Staleness Guard
 
-`BikkoLendingPool.sol` checks that the oracle price is not older than 48 hours:
+`BikkoLendingVault.sol` checks that the oracle price is not older than 48 hours:
 
 ```solidity
 require(oracle.lastUpdated() >= block.timestamp - 48 hours, "Oracle price stale");

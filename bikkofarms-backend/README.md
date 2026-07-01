@@ -32,7 +32,7 @@ src/
 │   ├── logger.ts           # Winston structured logger
 │   └── abis/               # Contract ABI JSON files
 │       ├── HarvestToken.json
-│       ├── BikkoLendingPool.json
+│       ├── BikkoLendingVault.json
 │       └── BikkoOracle.json
 ├── routes/
 │   ├── webhook.ts          # POST /webhook/whatsapp, /webhook/ussd, /webhook/kotani
