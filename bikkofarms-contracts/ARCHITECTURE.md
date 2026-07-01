@@ -72,7 +72,7 @@ graph TD
     AR -->|can liquidate| LQ[liquidate]
     AR -->|can emergency withdraw| EW[emergencyReturn]
     GR -->|can ONLY pause - not unpause| PA
-    AGR -->|can| APR[approveLoan]
+    AGR -->|can| APR[lockCollateral]
     AGR -->|can| REJ[rejectLoan]
     MR -->|can| MINT[mint HarvestToken]
     OUR -->|can| UP[updateCocoaPrice updateCoffeePrice]
@@ -138,7 +138,7 @@ graph LR
 ```mermaid
 stateDiagram-v2
     [*] --> PENDING: farmer applies via WhatsApp or USSD
-    PENDING --> APPROVED: agent calls approveLoan() - collateral locked on-chain
+    PENDING --> APPROVED: agent calls lockCollateral() - collateral locked on-chain
     PENDING --> REJECTED: agent calls rejectLoan() - no on-chain tx
     APPROVED --> DISBURSING: backend enqueues Kotani Pay payout
     DISBURSING --> DISBURSED: Kotani webhook payout.completed received
