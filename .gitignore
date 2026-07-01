@@ -1,0 +1,10 @@
+node_modules/
+bikkofarms-contracts/out/
+bikkofarms-contracts/cache/
+bikkofarms-contracts/node_modules/
+bikkofarms-contracts/foundry.lock
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local

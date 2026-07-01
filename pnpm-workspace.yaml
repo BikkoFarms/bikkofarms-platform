@@ -1,0 +1,6 @@
+packages:
+  - 'bikkofarms-backend'
+  - 'bikkofarms-contracts'
+  - 'bikkofarms-dashboard'
+  - 'bikkofarms-ussd'
+  - 'bikkofarms-whatsappbot'

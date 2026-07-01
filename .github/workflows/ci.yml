@@ -125,20 +125,20 @@ jobs:
         run: pnpm install --frozen-lockfile
         working-directory: .
 
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+
       - name: Compile contracts
-        run: pnpm hardhat compile
+        run: forge build
 
       - name: Run contract tests
-        run: pnpm hardhat test --network hardhat
-
-      - name: Check contract sizes
-        run: pnpm hardhat size-contracts
+        run: forge test -vv
 
       - name: Install Slither
         run: pip3 install slither-analyzer
 
       - name: Run Slither static analysis
-        run: slither contracts/ --exclude-low --exclude-informational --exclude-optimization
+        run: slither src/ --exclude-low --exclude-informational --exclude-optimization
         continue-on-error: false  # FAIL on high/medium findings
 
   # ─────────────────────────────────────────────
